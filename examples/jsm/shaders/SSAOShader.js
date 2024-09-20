@@ -177,14 +177,14 @@ const SSAOShader = {
 					vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
 
 					float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
-					vec3 sampleWorldPosition = getWorldPosition( samplePointUv, realDepth );
+					// vec3 sampleWorldPosition = getWorldPosition( samplePointUv, realDepth );
 					float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
 					float delta = sampleDepth - realDepth;
 
-					vec3 deltaWorldSpace = worldPosition - sampleWorldPosition;
-            		float distanceWorldSpace = length( deltaWorldSpace );
+					// vec3 deltaWorldSpace = worldPosition - sampleWorldPosition;
+            		// float distanceWorldSpace = length( deltaWorldSpace );
 
-					if ( distanceWorldSpace  > minDistance && distanceWorldSpace  < maxDistance ) { // if fragment is before sample point, increase occlusion
+					if ( delta  > minDistance && delta  < maxDistance ) {
 
 						occlusion += 1.0;
 
