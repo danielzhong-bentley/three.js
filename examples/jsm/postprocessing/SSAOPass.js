@@ -101,6 +101,8 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
 		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
+		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
+
 
 		// normal material
 
@@ -316,6 +318,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'resolution' ].value.set( width, height );
 		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
+		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
 
 		this.blurMaterial.uniforms[ 'resolution' ].value.set( width, height );
 

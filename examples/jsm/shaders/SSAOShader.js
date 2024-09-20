@@ -30,6 +30,7 @@ const SSAOShader = {
 		'resolution': { value: new Vector2() },
 		'cameraProjectionMatrix': { value: new Matrix4() },
 		'cameraInverseProjectionMatrix': { value: new Matrix4() },
+		'cameraInverseViewMatrix': { value: new Matrix4() },
 		'kernelRadius': { value: 8 },
 		'minDistance': { value: 0.005 },
 		'maxDistance': { value: 0.05 },
@@ -61,6 +62,7 @@ const SSAOShader = {
 		uniform float cameraFar;
 		uniform mat4 cameraProjectionMatrix;
 		uniform mat4 cameraInverseProjectionMatrix;
+		uniform mat4 cameraInverseViewMatrix;
 
 		uniform float kernelRadius;
 		uniform float minDistance; // avoid artifacts caused by neighbour fragments with minimal depth difference
@@ -123,6 +125,18 @@ const SSAOShader = {
 			return unpackRGBToNormal( texture2D( tNormal, screenPosition ).xyz );
 
 		}
+			
+		vec3 getWorldPosition( const in vec2 screenPosition, const in float depth ) {
+
+			vec4 clipPosition = vec4( (screenPosition * 2.0 - 1.0), depth, 1.0 );
+			
+			vec4 viewPosition = cameraInverseProjectionMatrix * clipPosition;
+			viewPosition /= viewPosition.w;
+			
+			vec4 worldPosition = cameraInverseViewMatrix * viewPosition;
+			
+			return worldPosition.xyz;
+		}
 
 		void main() {
 
@@ -138,6 +152,8 @@ const SSAOShader = {
 
 				vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
 				vec3 viewNormal = getViewNormal( vUv );
+
+				vec3 worldPosition = getWorldPosition( vUv, depth );
 
 				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
 				vec3 random = vec3( texture2D( tNoise, vUv * noiseScale ).r );
@@ -161,10 +177,14 @@ const SSAOShader = {
 					vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
 
 					float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
+					vec3 sampleWorldPosition = getWorldPosition( samplePointUv, realDepth );
 					float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
 					float delta = sampleDepth - realDepth;
 
-					if ( delta > minDistance && delta < maxDistance ) { // if fragment is before sample point, increase occlusion
+					vec3 deltaWorldSpace = worldPosition - sampleWorldPosition;
+            		float distanceWorldSpace = length( deltaWorldSpace );
+
+					if ( distanceWorldSpace  > minDistance && distanceWorldSpace  < maxDistance ) { // if fragment is before sample point, increase occlusion
 
 						occlusion += 1.0;
 
