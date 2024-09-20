@@ -102,6 +102,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
 		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
+		this.ssaoMaterial.uniforms[ 'cameraPosition' ] = { value: new Vector3() };
 
 
 		// normal material
@@ -190,6 +191,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'kernelRadius' ].value = this.kernelRadius;
 		this.ssaoMaterial.uniforms[ 'minDistance' ].value = this.minDistance;
 		this.ssaoMaterial.uniforms[ 'maxDistance' ].value = this.maxDistance;
+		this.ssaoMaterial.uniforms[ 'cameraPosition' ].value.copy( this.camera.position );
 		this.renderPass( renderer, this.ssaoMaterial, this.ssaoRenderTarget );
 
 		// render blur

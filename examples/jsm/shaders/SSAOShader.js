@@ -67,6 +67,7 @@ const SSAOShader = {
 		uniform float kernelRadius;
 		uniform float minDistance; // avoid artifacts caused by neighbour fragments with minimal depth difference
 		uniform float maxDistance; // avoid the influence of fragments which are too far away
+		// uniform vec3 cameraPosition;
 
 		varying vec2 vUv;
 
@@ -126,15 +127,11 @@ const SSAOShader = {
 
 		}
 			
-		vec3 getWorldPosition( const in vec2 screenPosition, const in float depth ) {
+		vec3 getWorldPosition( const in vec3 viewPosition, const in float depth ) {
+			vec4 viewPos4 = vec4(viewPosition, 1.0);
 
-			vec4 clipPosition = vec4( (screenPosition * 2.0 - 1.0), depth, 1.0 );
-			
-			vec4 viewPosition = cameraInverseProjectionMatrix * clipPosition;
-			viewPosition /= viewPosition.w;
-			
-			vec4 worldPosition = cameraInverseViewMatrix * viewPosition;
-			
+			vec4 worldPosition = cameraInverseViewMatrix * viewPos4;
+
 			return worldPosition.xyz;
 		}
 
@@ -153,7 +150,17 @@ const SSAOShader = {
 				vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
 				vec3 viewNormal = getViewNormal( vUv );
 
-				vec3 worldPosition = getWorldPosition( vUv, depth );
+			
+				// Daniel Zhong's code
+				vec3 worldPosition = getWorldPosition(viewPosition, depth);
+				float Sx = (float(KERNEL_SIZE) / 2.0) / resolution.x;
+        		float Sy = (float(KERNEL_SIZE) / 2.0) / resolution.y;
+				float worldSpaceZ = length(worldPosition - cameraPosition);
+				float kernelDiagonal = sqrt(Sx * Sx + Sy * Sy);
+				float radius = worldSpaceZ * (kernelDiagonal / cameraNear);
+
+				float dynamicMaxDistance = minDistance + radius;
+				// End of Daniel Zhong's code
 
 				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
 				vec3 random = vec3( texture2D( tNoise, vUv * noiseScale ).r );
@@ -177,17 +184,25 @@ const SSAOShader = {
 					vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
 
 					float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
-					// vec3 sampleWorldPosition = getWorldPosition( samplePointUv, realDepth );
-					float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
-					float delta = sampleDepth - realDepth;
+					// float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
+					// float delta = sampleDepth - realDepth;
 
-					// vec3 deltaWorldSpace = worldPosition - sampleWorldPosition;
-            		// float distanceWorldSpace = length( deltaWorldSpace );
+					// if ( delta  > minDistance && delta  < maxDistance ) {
 
-					if ( delta  > minDistance && delta  < maxDistance ) {
+					// 	occlusion += 1.0;
 
+					// }
+
+					// Daniel Zhong's code
+					float sampleDepth = getDepth( samplePointUv );
+					float sampleViewZ = getViewZ( sampleDepth );
+					vec3 sampleViewPosition = getViewPosition( samplePointUv, sampleDepth, sampleViewZ );
+					vec3 sampleWorldPosition = getWorldPosition( sampleViewPosition, sampleDepth );
+
+					float worldDistance = length( sampleWorldPosition - worldPosition );
+
+					if ( worldDistance > minDistance && worldDistance < dynamicMaxDistance ) {
 						occlusion += 1.0;
-
 					}
 
 				}
