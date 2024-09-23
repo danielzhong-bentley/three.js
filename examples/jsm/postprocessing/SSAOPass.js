@@ -49,8 +49,8 @@ class SSAOPass extends Pass {
 		this.noiseTexture = null;
 		this.output = 0;
 
-		this.minDistance = 0.005;
-		this.maxDistance = 0.1;
+		this.minDistance = 6.5;
+		this.maxDistance = 17.0;
 
 		this._visibilityCache = new Map();
 

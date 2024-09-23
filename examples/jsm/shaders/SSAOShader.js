@@ -159,7 +159,7 @@ const SSAOShader = {
 				float kernelDiagonal = sqrt(Sx * Sx + Sy * Sy);
 				float radius = worldSpaceZ * (kernelDiagonal / cameraNear);
 
-				float dynamicMaxDistance = minDistance + radius;
+				float dynamicMaxDistance = minDistance + radius - maxDistance;
 				// End of Daniel Zhong's code
 
 				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
