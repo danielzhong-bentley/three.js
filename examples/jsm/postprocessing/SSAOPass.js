@@ -103,6 +103,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
 		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
 		this.ssaoMaterial.uniforms[ 'cameraPosition' ] = { value: new Vector3() };
+		
 
 
 		// normal material
@@ -179,9 +180,20 @@ class SSAOPass extends Pass {
 	}
 
 	render( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
-
+		console.log(this.width, this.height);
 		// render normals and depth (honor only meshes, points and lines do not contribute to SSAO)
 
+		this.camera.updateMatrixWorld( true );
+   		this.camera.updateProjectionMatrix();
+
+		// Rebind the camera matrices to the SSAO shader uniforms
+		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
+		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
+		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
+		
+
+		this.ssaoMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
+		// render normals and depth (honor only meshes, points, and lines do not contribute to SSAO)
 		this.overrideVisibility();
 		this.renderOverride( renderer, this.normalMaterial, this.normalRenderTarget, 0x7777ff, 1.0 );
 		this.restoreVisibility();

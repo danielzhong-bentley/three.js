@@ -127,8 +127,16 @@ const SSAOShader = {
 
 		}
 			
-		vec3 getWorldPosition( const in vec3 viewPosition, const in float depth ) {
+		vec3 getWorldPosition( const in vec3 viewPosition ) {
 			vec4 viewPos4 = vec4(viewPosition, 1.0);
+
+			vec4 worldPosition = cameraInverseViewMatrix * viewPos4;
+
+			return worldPosition.xyz;
+		}
+
+		vec3 getWorldNormal( const in vec3 viewPosition ) {
+			vec4 viewPos4 = vec4(viewPosition, 0.0);
 
 			vec4 worldPosition = cameraInverseViewMatrix * viewPos4;
 
@@ -146,20 +154,23 @@ const SSAOShader = {
 			} else {
 
 				float viewZ = getViewZ( depth );
-
+				
 				vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
 				vec3 viewNormal = getViewNormal( vUv );
+				vec3 worldNormal = getWorldNormal(viewNormal);
 
 			
 				// Daniel Zhong's code
-				vec3 worldPosition = getWorldPosition(viewPosition, depth);
-				float Sx = (float(KERNEL_SIZE) / 2.0) / resolution.x;
-        		float Sy = (float(KERNEL_SIZE) / 2.0) / resolution.y;
-				float worldSpaceZ = length(worldPosition - cameraPosition);
+				vec3 worldPosition = getWorldPosition(viewPosition);
+				float Sx = (float(kernelRadius) / 2.0) / resolution.x;
+        		float Sy = (float(kernelRadius) / 2.0) / resolution.y;
+				//float worldSpaceZ = length(worldPosition - cameraPosition);
+		
+				float worldSpaceZ = dot(worldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
 				float kernelDiagonal = sqrt(Sx * Sx + Sy * Sy);
 				float radius = worldSpaceZ * (kernelDiagonal / cameraNear);
-
-				float dynamicMaxDistance = minDistance + radius - maxDistance;
+				//gl_FragColor = vec4(fract(vec3(10000.0) + worldPosition / 100.0), 1.0);
+				// float dynamicMaxDistance = minDistance + radius - maxDistance;
 				// End of Daniel Zhong's code
 
 				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
@@ -197,20 +208,31 @@ const SSAOShader = {
 					float sampleDepth = getDepth( samplePointUv );
 					float sampleViewZ = getViewZ( sampleDepth );
 					vec3 sampleViewPosition = getViewPosition( samplePointUv, sampleDepth, sampleViewZ );
-					vec3 sampleWorldPosition = getWorldPosition( sampleViewPosition, sampleDepth );
+					vec3 sampleWorldPosition = getWorldPosition( sampleViewPosition );
 
 					float worldDistance = length( sampleWorldPosition - worldPosition );
 
-					if ( worldDistance > minDistance && worldDistance < dynamicMaxDistance ) {
-						occlusion += 1.0;
+					float relDistance = worldDistance / radius;
+
+					if (relDistance > 0.1) {
+						occlusion += max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
 					}
+
+					// if ( worldDistance > minDistance && worldDistance < dynamicMaxDistance ) {
+					// 	occlusion += 1.0;
+					// }
 
 				}
 
 				occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
 
-				gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
-
+				// gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+				gl_FragColor = vec4( worldNormal, 1.0 );
+				//gl_FragColor = vec4( vec3( (worldSpaceZ / 1000.0) ), 1.0 );
+			 // gl_FragColor = vec4( vec3( radius / maxDistance), 1.0 );
+				// gl_FragColor = vec4( vec3( viewZ * 1000.0 + 0.5 ), 1.0 );
+				// gl_FragColor = vec4( viewZ/5.0, 0.0, 0.0, 1.0 );
+				
 			}
 
 		}`
