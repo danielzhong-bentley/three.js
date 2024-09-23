@@ -180,7 +180,6 @@ class SSAOPass extends Pass {
 	}
 
 	render( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
-		console.log(this.width, this.height);
 		// render normals and depth (honor only meshes, points and lines do not contribute to SSAO)
 
 		this.camera.updateMatrixWorld( true );

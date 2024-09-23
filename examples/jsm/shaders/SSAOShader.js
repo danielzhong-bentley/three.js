@@ -135,12 +135,8 @@ const SSAOShader = {
 			return worldPosition.xyz;
 		}
 
-		vec3 getWorldNormal( const in vec3 viewPosition ) {
-			vec4 viewPos4 = vec4(viewPosition, 0.0);
-
-			vec4 worldPosition = cameraInverseViewMatrix * viewPos4;
-
-			return worldPosition.xyz;
+		vec3 getWorldNormal( const in vec3 viewNormal ) {
+			return normalize((cameraInverseViewMatrix * vec4(viewNormal, 0.0)).xyz);
 		}
 
 		void main() {
@@ -157,11 +153,10 @@ const SSAOShader = {
 				
 				vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
 				vec3 viewNormal = getViewNormal( vUv );
-				vec3 worldNormal = getWorldNormal(viewNormal);
-
-			
+				
 				// Daniel Zhong's code
 				vec3 worldPosition = getWorldPosition(viewPosition);
+				vec3 worldNormal = getWorldNormal(viewNormal);
 				float Sx = (float(kernelRadius) / 2.0) / resolution.x;
         		float Sy = (float(kernelRadius) / 2.0) / resolution.y;
 				//float worldSpaceZ = length(worldPosition - cameraPosition);
@@ -210,24 +205,33 @@ const SSAOShader = {
 					vec3 sampleViewPosition = getViewPosition( samplePointUv, sampleDepth, sampleViewZ );
 					vec3 sampleWorldPosition = getWorldPosition( sampleViewPosition );
 
-					float worldDistance = length( sampleWorldPosition - worldPosition );
+					vec3 sampleViewNormal = getViewNormal( samplePointUv );
+            		vec3 sampleWorldNormal = getWorldNormal( sampleViewNormal );
 
-					float relDistance = worldDistance / radius;
+					// float worldDistance = length( sampleWorldPosition - worldPosition );
 
-					if (relDistance > 0.1) {
-						occlusion += max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
-					}
+					float sampleWorldSpaceZ = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
+					float zDistance = abs(sampleWorldSpaceZ - worldSpaceZ);
 
-					// if ( worldDistance > minDistance && worldDistance < dynamicMaxDistance ) {
-					// 	occlusion += 1.0;
+					float relDistance = zDistance / radius;
+					
+
+					float normalDiff = max(0.0, dot(worldNormal, sampleWorldNormal));
+
+					// if (relDistance > 0.1) {
+					// 	occlusion += normalDiff * max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
 					// }
+
+					if ( zDistance > minDistance && zDistance < maxDistance ) {
+						occlusion += 1.0;
+					}
 
 				}
 
 				occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
 
-				// gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
-				gl_FragColor = vec4( worldNormal, 1.0 );
+				gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+				//gl_FragColor = vec4( worldNormal, 1.0 );
 				//gl_FragColor = vec4( vec3( (worldSpaceZ / 1000.0) ), 1.0 );
 			 // gl_FragColor = vec4( vec3( radius / maxDistance), 1.0 );
 				// gl_FragColor = vec4( vec3( viewZ * 1000.0 + 0.5 ), 1.0 );
