@@ -213,16 +213,16 @@ const SSAOShader = {
 					float sampleWorldSpaceZ = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
 					float zDistance = abs(sampleWorldSpaceZ - worldSpaceZ);
 
-					float relDistance = zDistance / radius;
+					float relDistance = zDistance;
 					
 
 					// float normalDiff = max(0.0, dot(worldNormal, sampleWorldNormal));
 
-					// if (relDistance > 0.1) {
-					// 	occlusion +=  max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
+					// if (relDistance > radius * 0.1) {
+					// 	occlusion +=  max(0.0, min(1.0, 1.0 - (relDistance - radius * minDistance) / (radius * maxDistance - radius * minDistance)));
 					// }
 
-					if ( relDistance > minDistance && relDistance < maxDistance ) {
+					if ( relDistance > radius * minDistance && relDistance < radius * maxDistance ) {
 						occlusion += 1.0;
 					}
 
