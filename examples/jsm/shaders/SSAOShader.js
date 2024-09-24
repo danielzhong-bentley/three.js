@@ -222,7 +222,7 @@ const SSAOShader = {
 					// 	occlusion +=  max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
 					// }
 
-					if ( worldDistance > minDistance && worldDistance < maxDistance ) {
+					if ( relDistance > minDistance && relDistance < maxDistance ) {
 						occlusion += 1.0;
 					}
 
@@ -232,7 +232,7 @@ const SSAOShader = {
 
 				gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
 				// gl_FragColor = vec4( worldNormal, 1.0 );
-				//gl_FragColor = vec4( vec3( (worldSpaceZ / 1000.0) ), 1.0 );
+				// gl_FragColor = vec4( vec3( (worldSpaceZ / 1000.0) ), 1.0 );
 			 // gl_FragColor = vec4( vec3( radius / maxDistance), 1.0 );
 				// gl_FragColor = vec4( vec3( viewZ * 1000.0 + 0.5 ), 1.0 );
 				// gl_FragColor = vec4( viewZ/5.0, 0.0, 0.0, 1.0 );
