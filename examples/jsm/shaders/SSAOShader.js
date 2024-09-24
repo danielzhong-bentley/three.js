@@ -205,10 +205,10 @@ const SSAOShader = {
 					vec3 sampleViewPosition = getViewPosition( samplePointUv, sampleDepth, sampleViewZ );
 					vec3 sampleWorldPosition = getWorldPosition( sampleViewPosition );
 
-					vec3 sampleViewNormal = getViewNormal( samplePointUv );
-            		vec3 sampleWorldNormal = getWorldNormal( sampleViewNormal );
+					// vec3 sampleViewNormal = getViewNormal( samplePointUv );
+            		// vec3 sampleWorldNormal = getWorldNormal( sampleViewNormal );
 
-					// float worldDistance = length( sampleWorldPosition - worldPosition );
+					float worldDistance = length( sampleWorldPosition - worldPosition );
 
 					float sampleWorldSpaceZ = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
 					float zDistance = abs(sampleWorldSpaceZ - worldSpaceZ);
@@ -216,13 +216,13 @@ const SSAOShader = {
 					float relDistance = zDistance / radius;
 					
 
-					float normalDiff = max(0.0, dot(worldNormal, sampleWorldNormal));
+					// float normalDiff = max(0.0, dot(worldNormal, sampleWorldNormal));
 
 					// if (relDistance > 0.1) {
-					// 	occlusion += normalDiff * max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
+					// 	occlusion +=  max(0.0, min(1.0, 1.0 - (relDistance - minDistance) / (maxDistance - minDistance)));
 					// }
 
-					if ( zDistance > minDistance && zDistance < maxDistance ) {
+					if ( worldDistance > minDistance && worldDistance < maxDistance ) {
 						occlusion += 1.0;
 					}
 
@@ -231,7 +231,7 @@ const SSAOShader = {
 				occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
 
 				gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
-				//gl_FragColor = vec4( worldNormal, 1.0 );
+				// gl_FragColor = vec4( worldNormal, 1.0 );
 				//gl_FragColor = vec4( vec3( (worldSpaceZ / 1000.0) ), 1.0 );
 			 // gl_FragColor = vec4( vec3( radius / maxDistance), 1.0 );
 				// gl_FragColor = vec4( vec3( viewZ * 1000.0 + 0.5 ), 1.0 );
