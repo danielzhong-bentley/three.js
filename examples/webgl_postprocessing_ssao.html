@@ -118,7 +118,7 @@
             }).onChange(function (value) { 
                 ssaoPass.output = value;
             });
-            gui.add(ssaoPass, 'kernelRadius').min(0).max(32);
+            gui.add(ssaoPass, 'kernelRadius').min(0).max(128);
             gui.add(ssaoPass, 'minDistance').min(0.001).max(50.0);
             gui.add(ssaoPass, 'maxDistance').min(0.01).max(150.0);
             gui.add(ssaoPass, 'enabled');
