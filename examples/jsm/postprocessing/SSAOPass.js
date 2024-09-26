@@ -102,6 +102,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
 		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
+		this.ssaoMaterial.uniforms[ 'cameraViewMatrix' ].value.copy( this.camera.matrixWorldInverse );
 		this.ssaoMaterial.uniforms[ 'cameraPosition' ] = { value: new Vector3() };
 		
 
@@ -189,6 +190,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
 		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
+		this.ssaoMaterial.uniforms[ 'cameraViewMatrix' ].value.copy( this.camera.matrixWorldInverse );
 		
 
 		this.ssaoMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
@@ -332,6 +334,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'cameraProjectionMatrix' ].value.copy( this.camera.projectionMatrix );
 		this.ssaoMaterial.uniforms[ 'cameraInverseProjectionMatrix' ].value.copy( this.camera.projectionMatrixInverse );
 		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
+		this.ssaoMaterial.uniforms[ 'cameraViewMatrix' ].value.copy( this.camera.matrixWorldInverse );
 
 		this.blurMaterial.uniforms[ 'resolution' ].value.set( width, height );
 
