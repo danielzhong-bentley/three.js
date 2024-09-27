@@ -28,6 +28,7 @@ import { SSAOShader } from '../shaders/SSAOShader.js';
 import { SSAOBlurShader } from '../shaders/SSAOShader.js';
 import { SSAODepthShader } from '../shaders/SSAOShader.js';
 import { CopyShader } from '../shaders/CopyShader.js';
+import { ImprovedNoise } from '../math/ImprovedNoise.js';
 
 class SSAOPass extends Pass {
 
@@ -57,6 +58,7 @@ class SSAOPass extends Pass {
 		//
 
 		this.generateSampleKernel( kernelSize );
+		this.loadBlueNoiseTexture();
 		this.generateRandomKernelRotations();
 
 		// depth texture
@@ -179,6 +181,21 @@ class SSAOPass extends Pass {
 		this.fsQuad.dispose();
 
 	}
+
+	loadBlueNoiseTexture() {
+		const loader = new TextureLoader();
+	
+		// Load your blue noise texture
+		loader.load('./blueNoise.png', (texture) => {
+		  // Set texture properties
+		  texture.wrapS = RepeatWrapping;
+		  texture.wrapT = RepeatWrapping;
+		  texture.magFilter = NearestFilter;
+		  texture.minFilter = NearestFilter;
+		  this.noiseTexture = texture; // Assign the loaded texture to SSAO shader uniform
+		  this.ssaoMaterial.uniforms['tNoise'].value = this.noiseTexture;
+		});
+	  }
 
 	render( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
 		// render normals and depth (honor only meshes, points and lines do not contribute to SSAO)
@@ -354,7 +371,7 @@ class SSAOPass extends Pass {
 			sample.normalize();
 
 			let scale = i / kernelSize;
-			scale = MathUtils.lerp( 0.1, 1, scale * scale );
+			scale = Math.pow( scale, 2 );
 			sample.multiplyScalar( scale );
 
 			kernel.push( sample );
@@ -367,21 +384,23 @@ class SSAOPass extends Pass {
 
 		const width = 4, height = 4;
 
-		const simplex = new SimplexNoise();
+		const noiseGenerator = new ImprovedNoise();
 
 		const size = width * height;
 		const data = new Float32Array( size );
 
 		for ( let i = 0; i < size; i ++ ) {
 
-			const x = ( Math.random() * 2 ) - 1;
-			const y = ( Math.random() * 2 ) - 1;
+			const x = Math.random() * 100; // Larger scale for better texture generation
+			const y = Math.random() * 100;
 			const z = 0;
 
-			data[ i ] = simplex.noise3d( x, y, z );
+			// Generate Perlin noise using ImprovedNoise for each point
+			data[ i ] = noiseGenerator.noise( x, y, z );
 
 		}
 
+		// Creating the noise texture
 		this.noiseTexture = new DataTexture( data, width, height, RedFormat, FloatType );
 		this.noiseTexture.wrapS = RepeatWrapping;
 		this.noiseTexture.wrapT = RepeatWrapping;
