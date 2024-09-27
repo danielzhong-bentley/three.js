@@ -31,10 +31,10 @@ const SSAOShader = {
 		'cameraProjectionMatrix': { value: new Matrix4() },
 		'cameraInverseProjectionMatrix': { value: new Matrix4() },
 		'cameraInverseViewMatrix': { value: new Matrix4() },
-		'cameraViewMatrix': { value: new Matrix4() },
 		'kernelRadius': { value: 8 },
 		'minDistance': { value: 0.005 },
 		'maxDistance': { value: 0.05 },
+		'cameraViewMatrix': { value: new Matrix4() },
 
 	},
 
@@ -64,7 +64,6 @@ const SSAOShader = {
 		uniform mat4 cameraProjectionMatrix;
 		uniform mat4 cameraInverseProjectionMatrix;
 		uniform mat4 cameraInverseViewMatrix;
-		uniform mat4 cameraViewMatrix;
 
 		uniform float kernelRadius;
 		uniform float minDistance; // avoid artifacts caused by neighbour fragments with minimal depth difference
@@ -148,7 +147,6 @@ const SSAOShader = {
 
 			if ( depth == 1.0 ) {
 
-				// gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 				gl_FragColor = vec4( 1.0 ); // don't influence background
 				
 			} else {
@@ -158,9 +156,7 @@ const SSAOShader = {
 				vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
 				
 				vec3 viewNormal = getViewNormal( vUv );
-
-				// gl_FragColor = vec4(0.5 + 0.5 * viewNormal, 1.0);
-								
+				
 				// Daniel Zhong's code
 				vec3 worldPosition = getWorldPosition(viewPosition);
 				vec3 worldNormal = getWorldNormal(viewNormal);
@@ -173,138 +169,82 @@ const SSAOShader = {
 				float kernelDiagonal = sqrt(Sx * Sx + Sy * Sy);
 				float radius = worldSpaceZ * (kernelDiagonal / cameraNear);
 				//gl_FragColor = vec4(fract(vec3(10000.0) + worldPosition / 100.0), 1.0);
-				//return;
-				// gl_FragColor = vec4(fract(10000.0 + worldPosition.x / 20.0), 0.0, 0.0, 1.0);
 				// float dynamicMaxDistance = minDistance + radius - maxDistance;
 				// End of Daniel Zhong's code
 
 				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
-				vec3 random = vec3( texture2D( tNoise, vUv * noiseScale ) );
+				vec3 random = vec3( texture2D( tNoise, vUv * noiseScale ).r );
 
 				// compute matrix used to reorient a kernel vector
 
 				vec3 tangent = normalize( random - worldNormal * dot( random, worldNormal ) );
 				vec3 bitangent = cross( worldNormal, tangent );
 				mat3 kernelMatrix = mat3( tangent, bitangent, worldNormal );
-
-				// gl_FragColor = vec4(0.5 + 0.5 * worldNormal, 1.0);
-
-				// gl_FragColor = vec4(0.5 + 0.5 * worldNormal, 1.0);
-				// gl_FragColor = vec4(0.0, 0.5 + 0.5 * worldNormal.y, 0.0, 1.0);
-				//gl_FragColor = vec4(vec3(length(worldNormal) / 2.0), 1.0);
-				//return;
-
-				//gl_FragColor = vec4(vec3(abs(viewZ) / 100.0), 1.0);
-				//gl_FragColor = vec4(fract(100000.0 + worldPosition / 100.0), 1.0);
-				//return;
-
-
-				// gl_FragColor = vec4(random.x, random.y, random.z, 1.0);
-								
-				// vec4 ndc = cameraProjectionMatrix * cameraViewMatrix * vec4( worldPosition, 1.0 );
+				
+				// vec4 ndc = cameraProjectionMatrix * inverse(cameraInverseViewMatrix) * vec4( worldPosition, 1.0 );
 				// ndc /= ndc.w;
 				// vec2 uv = ndc.xy * 0.5 + 0.5;
 				// gl_FragColor = vec4(uv, 0., 1.0);
 				// return;
 
-				float AOScale = 3.0 * radius; // 30.0; // 30.0;
 				float occlusion = 0.0;
-				//gl_FragColor = vec4(vec3(radius / 100.0), 1.0);
-				//return;
-				for ( int i = 0; i < 0 + 1 * KERNEL_SIZE; i ++ ) {
+				for ( int i = 0; i < KERNEL_SIZE; i ++ ) {
 
 					vec3 sampleVector = kernelMatrix * kernel[ i ]; // reorient sample vector in view space
-					// vec3 samplePoint = worldPosition + ( sampleVector * kernelRadius ); // calculate sample point
-					vec3 samplePoint = worldPosition + ( sampleVector * AOScale ); // calculate sample point
-					// vec3 samplePoint = worldPosition + worldNormal * AOScale; // calculate sample point
+					vec3 samplePoint = worldPosition + ( sampleVector * kernelRadius ); // calculate sample point
 
-					vec4 samplePointNDC = cameraProjectionMatrix * cameraViewMatrix * vec4( samplePoint, 1.0 ); // project point and calculate NDC
+					vec4 samplePointNDC = cameraProjectionMatrix * inverse(cameraInverseViewMatrix) * vec4( samplePoint, 1.0 ); // project point and calculate NDC
 					samplePointNDC /= samplePointNDC.w;
 
 					vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
 
-					// gl_FragColor = vec4(vec3(10.0*length(samplePointUv - vUv)), 1.0);
-					// gl_FragColor = vec4(0.5 + 10.0 * (samplePointUv - vUv), 0.0, 1.0);
-					// gl_FragColor = vec4(vUv.x, vUv.y, 0.0, 1.0);
+					// float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
+					// float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
+					// float delta = sampleDepth - realDepth;
 
-						// Old
-						// float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
-						// float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
-						// float delta = sampleDepth - realDepth;
-						// if ( delta  > minDistance && delta  < maxDistance ) {
-						// 	occlusion += 1.0;
-						// }
+					// if ( delta  > minDistance && delta  < maxDistance ) {
 
+					// 	occlusion += 1.0;
+
+					// }
+
+					// Daniel Zhong's code
 					float sampleDepth = getDepth( samplePointUv );
-						/*
-						// Daniel Zhong's code
-						if (sampleDepth == 1.0) {
-							// gl_FragColor = vec4(fract(vec3(10000.0) + worldPosition / 100.0), 1.0);
-							//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-							//return;
-						}
-						//gl_FragColor = vec4(vec3(sampleDepth) / 10.0, 1.0);
-						*/
-					
 					float sampleViewZ = getViewZ( sampleDepth );
 					vec3 sampleViewPosition = getViewPosition( samplePointUv, sampleDepth, sampleViewZ );
 					vec3 sampleWorldPosition = getWorldPosition( sampleViewPosition );
 
-					
 					// vec3 sampleViewNormal = getViewNormal( samplePointUv );
-					// vec3 sampleWorldNormal = getWorldNormal( sampleViewNormal );
+            		// vec3 sampleWorldNormal = getWorldNormal( sampleViewNormal );
 
-					// vec3 dir = normalize(sampleWorldPosition - worldPosition);
+					float worldDistance = length( sampleWorldPosition - worldPosition );
 
-					float worldDistance = length( sampleWorldPosition - worldPosition ) / AOScale;
+					float sampleWorldSpaceZ = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
+					float zDistance = abs(sampleWorldSpaceZ - worldSpaceZ);
+					float relDistance = zDistance;
+
 					
-					vec3 sampleDirection = normalize(sampleWorldPosition - worldPosition);
-					float lightIntensity = clamp(dot(sampleDirection, normalize(worldNormal)), 0.0, 1.0);
-					float distanceFadeout = clamp(1.0 - (worldDistance - 0.0) / 3.0, 0.0, 1.0);
-					// occlusion += lightIntensity; //  * distanceFadeout;
-					// occlusion += distanceFadeout;
-					occlusion += lightIntensity * distanceFadeout;
+					float realDepth = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
+					sampleDepth = dot(samplePoint - cameraPosition, -cameraInverseViewMatrix[2].xyz);
+					float delta = abs(sampleDepth - realDepth);
+					if ( delta  > minDistance * radius && delta  < maxDistance * radius) {
+						occlusion += 1.0;
+					}
 
-					/*
-						if (worldDistance < 10.0) {
-							gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-						} else if (worldDistance < 30.0) {
-							gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
-						} else {
-							gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-						}
+					// float normalDiff = max(0.0, dot(worldNormal, sampleWorldNormal));
 
-						// float intensity = max(0.0, min(1.0, (worldDistance - 10.0) / 20.0));
-						// gl_FragColor = vec4(vec3(1.0 - intensity), 1.0);
+					// if (relDistance > radius * 0.1) {
+					// 	occlusion +=  max(0.0, min(1.0, 1.0 - (relDistance - radius * minDistance) / (radius * maxDistance - radius * minDistance)));
+					// }
 
-						float sampleWorldSpaceZ = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
-						float zDistance = abs(sampleWorldSpaceZ - worldSpaceZ);
-						float relDistance = zDistance;
-
-						
-						float realDepth = dot(sampleWorldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
-						sampleDepth = dot(samplePoint - cameraPosition, -cameraInverseViewMatrix[2].xyz);
-						float delta = abs(sampleDepth - realDepth);
-						if ( delta  > minDistance * radius && delta  < maxDistance * radius) {
-							occlusion += 1.0;
-						}
-
-						// float normalDiff = max(0.0, dot(worldNormal, sampleWorldNormal));
-
-						// if (relDistance > radius * 0.1) {
-						// 	occlusion +=  max(0.0, min(1.0, 1.0 - (relDistance - radius * minDistance) / (radius * maxDistance - radius * minDistance)));
-						// }
-
-						// if ( relDistance > radius * minDistance && relDistance < radius * maxDistance ) {
-						// 	occlusion += 1.0;
-						// }
-						*/
+					// if ( relDistance > radius * minDistance && relDistance < radius * maxDistance ) {
+					// 	occlusion += 1.0;
+					// }
 
 				}
 
-				occlusion = clamp( 1.0 - 1.5 * occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
-				gl_FragColor = vec4( vec3( occlusion ), 1.0 );
-				// gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+				occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
+				gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
 				// gl_FragColor = vec4( worldNormal, 1.0 );
 				// gl_FragColor = vec4( vec3( (worldSpaceZ / 1000.0) ), 1.0 );
 			 // gl_FragColor = vec4( vec3( radius / maxDistance), 1.0 );
