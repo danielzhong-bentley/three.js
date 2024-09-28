@@ -20,7 +20,8 @@ import {
 	UniformsUtils,
 	Vector3,
 	WebGLRenderTarget,
-	ZeroFactor
+	ZeroFactor,
+	TextureLoader
 } from 'three';
 import { Pass, FullScreenQuad } from './Pass.js';
 import { SimplexNoise } from '../math/SimplexNoise.js';
@@ -96,7 +97,7 @@ class SSAOPass extends Pass {
 
 		this.ssaoMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
 		this.ssaoMaterial.uniforms[ 'tDepth' ].value = this.normalRenderTarget.depthTexture;
-		this.ssaoMaterial.uniforms[ 'tNoise' ].value = this.noiseTexture;
+		// this.ssaoMaterial.uniforms[ 'tNoise' ].value = this.noiseTexture;
 		this.ssaoMaterial.uniforms[ 'kernel' ].value = this.kernel;
 		this.ssaoMaterial.uniforms[ 'cameraNear' ].value = this.camera.near;
 		this.ssaoMaterial.uniforms[ 'cameraFar' ].value = this.camera.far;
@@ -186,7 +187,7 @@ class SSAOPass extends Pass {
 		const loader = new TextureLoader();
 	
 		// Load your blue noise texture
-		loader.load('./blueNoise.png', (texture) => {
+		loader.load('./jsm/postprocessing/blueNoise.png', (texture) => {
 		  // Set texture properties
 		  texture.wrapS = RepeatWrapping;
 		  texture.wrapT = RepeatWrapping;

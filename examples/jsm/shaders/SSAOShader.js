@@ -178,8 +178,10 @@ const SSAOShader = {
 				// float dynamicMaxDistance = minDistance + radius - maxDistance;
 				// End of Daniel Zhong's code
 
-				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
+				vec2 noiseScale = vec2( resolution.x / 400.0, resolution.y / 400.0 );
 				vec3 random = vec3( texture2D( tNoise, vUv * noiseScale ) );
+				gl_FragColor = vec4( random, 1.0 );
+				return;
 
 				// compute matrix used to reorient a kernel vector
 
