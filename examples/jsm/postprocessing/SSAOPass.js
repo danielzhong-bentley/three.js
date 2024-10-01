@@ -125,6 +125,7 @@ class SSAOPass extends Pass {
 		} );
 		this.blurMaterial.uniforms[ 'tDiffuse' ].value = this.ssaoRenderTarget.texture;
 		this.blurMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
+		
 
 		// material for rendering the depth
 
@@ -195,6 +196,7 @@ class SSAOPass extends Pass {
 		  texture.minFilter = NearestFilter;
 		  this.noiseTexture = texture; // Assign the loaded texture to SSAO shader uniform
 		  this.ssaoMaterial.uniforms['tNoise'].value = this.noiseTexture;
+		  this.blurMaterial.uniforms[ 'tNoise' ].value = this.noiseTexture;
 		});
 	  }
 

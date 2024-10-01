@@ -292,6 +292,7 @@ const SSAOBlurShader = {
 	uniforms: {
 
 		'tDiffuse': { value: null },
+		'tNoise': { value: null },
 		'resolution': { value: new Vector2() }
 
 	},
@@ -310,7 +311,7 @@ const SSAOBlurShader = {
 	fragmentShader:
 
 		`uniform sampler2D tDiffuse;
-
+		uniform sampler2D tNoise;
 		uniform vec2 resolution;
 
 		varying vec2 vUv;
@@ -319,20 +320,25 @@ const SSAOBlurShader = {
 
 			vec2 texelSize = ( 1.0 / resolution );
 			float result = 0.0;
+			vec3 baseNoise = 2.0 * ( texture2D( tNoise, vUv * resolution / 1024.0 ).xyz - 0.5 );
 
-			for ( int i = - 2; i <= 2; i ++ ) {
+			for ( int i = -2; i <= 2; i++ ) {
+				for ( int j = -2; j <= 2; j++ ) {
 
-				for ( int j = - 2; j <= 2; j ++ ) {
+					// Sample noise texture for each kernel point
+					vec2 sampleOffset = vec2(float(i), float(j)) * texelSize; 
+					vec3 sampleNoise = texture2D( tNoise, (vUv + sampleOffset) * resolution / 1024.0 ).xyz;
 
-					vec2 offset = ( vec2( float( i ), float( j ) ) ) * texelSize;
-					result += texture2D( tDiffuse, vUv + offset ).r;
+					// Apply baseNoise to introduce consistent randomness across the entire fragment
+					vec2 jitter = ( vec2(baseNoise.x, baseNoise.y) + vec2(sampleNoise.x * 2.0 - 1.0, sampleNoise.y * 2.0 - 1.0) ) * 0.5 * texelSize;
+					vec2 finalOffset = sampleOffset + jitter;
 
+					result += texture2D( tDiffuse, vUv + finalOffset ).r;
 				}
+    		}
 
-			}
-
+			// Average the results of the blur
 			gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
-
 		}`
 
 };
