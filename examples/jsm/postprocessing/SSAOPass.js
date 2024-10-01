@@ -365,13 +365,30 @@ class SSAOPass extends Pass {
 		for ( let i = 0; i < kernelSize; i ++ ) {
 
 			const sample = new Vector3();
-			sample.x = ( Math.random() * 2 ) - 1;
-			sample.y = ( Math.random() * 2 ) - 1;
-			sample.z = Math.random();
+			// sample.x = ( Math.random() * 2 ) - 1;
+			// sample.y = ( Math.random() * 2 ) - 1;
+			// sample.z = 0.05 + Math.random(); // We don't want Z to be 0
+			
+			// sample.normalize();
+			
+			// // Importance sampling
+			// sample.x *= Math.abs(sample.x);
+			// sample.y *= Math.abs(sample.y);
 
-			sample.normalize();
+			// sample.normalize();
 
-			let scale = i / kernelSize;
+			const u1 = Math.random();
+			const u2 = Math.random();
+
+			const r = Math.sqrt(u1);
+			const theta = 2 * Math.PI * u2;
+
+			sample.x = r * Math.cos(theta);
+			sample.y = r * Math.sin(theta);
+			sample.z = Math.sqrt(1 - u1);
+
+			// Scale must not be 0
+			let scale = (i + 1) / kernelSize;
 			scale = Math.pow( scale, 2 );
 			sample.multiplyScalar( scale );
 
