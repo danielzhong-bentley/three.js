@@ -125,7 +125,7 @@ class SSAOPass extends Pass {
 		} );
 		this.blurMaterial.uniforms[ 'tDiffuse' ].value = this.ssaoRenderTarget.texture;
 		this.blurMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
-		
+		this.blurMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
 
 		// material for rendering the depth
 

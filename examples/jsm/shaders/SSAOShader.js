@@ -293,8 +293,8 @@ const SSAOBlurShader = {
 
 		'tDiffuse': { value: null },
 		'tNoise': { value: null },
-		'resolution': { value: new Vector2() }
-
+		'resolution': { value: new Vector2() },
+		'tNormal': { value: null },
 	},
 
 	vertexShader:
@@ -313,17 +313,19 @@ const SSAOBlurShader = {
 		`uniform sampler2D tDiffuse;
 		uniform sampler2D tNoise;
 		uniform vec2 resolution;
+		uniform sampler2D tNormal;
 
 		varying vec2 vUv;
 
 		void main() {
-
 			vec2 texelSize = ( 1.0 / resolution );
 			float result = 0.0;
+			float weightSum = 0.0;
 			vec3 baseNoise = 2.0 * ( texture2D( tNoise, vUv * resolution / 1024.0 ).xyz - 0.5 );
+			vec3 normal = normalize( texture2D( tNormal, vUv ).xyz );
 
-			for ( int i = -2; i <= 2; i++ ) {
-				for ( int j = -2; j <= 2; j++ ) {
+			for ( int i = -3; i <= 3; i+=2 ) {
+				for ( int j = -3; j <= 3; j+=2 ) {
 
 					// Sample noise texture for each kernel point
 					vec2 sampleOffset = vec2(float(i), float(j)) * texelSize; 
@@ -333,12 +335,25 @@ const SSAOBlurShader = {
 					vec2 jitter = ( vec2(baseNoise.x, baseNoise.y) + vec2(sampleNoise.x * 2.0 - 1.0, sampleNoise.y * 2.0 - 1.0) ) * 0.5 * texelSize;
 					vec2 finalOffset = sampleOffset + jitter;
 
-					result += texture2D( tDiffuse, vUv + finalOffset ).r;
+					// Sample the normal of the neighboring pixel
+					vec3 sampleNormal = normalize( texture2D( tNormal, vUv + finalOffset ).xyz );
+
+					float weight = max(dot(normal, sampleNormal), 0.0); // Use max to ensure non-negative weight
+
+					result += texture2D( tDiffuse, vUv + finalOffset ).r * weight;
+
+					// Sum the weights for normalization
+					weightSum += weight;
 				}
     		}
 
-			// Average the results of the blur
-			gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
+			// Normalize the result by dividing by the sum of weights
+			if (weightSum > 0.0) {
+				result /= weightSum;
+			}
+
+			// Set the final blurred color
+			gl_FragColor = vec4( vec3( result ), 1.0 );
 		}`
 
 };
