@@ -35,7 +35,7 @@ const SSAOShader = {
 		'kernelRadius': { value: 8 },
 		'minDistance': { value: 0.005 },
 		'maxDistance': { value: 0.05 },
-
+		'aoPower': { value: 1.5 },
 	},
 
 	vertexShader: /* glsl */`
@@ -70,6 +70,7 @@ const SSAOShader = {
 		uniform float minDistance; // avoid artifacts caused by neighbour fragments with minimal depth difference
 		uniform float maxDistance; // avoid the influence of fragments which are too far away
 		// uniform vec3 cameraPosition;
+		uniform float aoPower; 
 
 		varying vec2 vUv;
 
@@ -214,7 +215,7 @@ const SSAOShader = {
 					}
 				}
 
-				occlusion = pow(1.0 - occlusion, 1.5);
+				occlusion = pow(1.0 - occlusion, aoPower);
 				gl_FragColor = vec4( vec3( occlusion ), 1.0 );
 			}
 
@@ -295,6 +296,7 @@ const SSAOBlurShader = {
 		'tNoise': { value: null },
 		'resolution': { value: new Vector2() },
 		'tNormal': { value: null },
+		'blurScale': { value: 1.0 },
 	},
 
 	vertexShader:
@@ -314,11 +316,12 @@ const SSAOBlurShader = {
 		uniform sampler2D tNoise;
 		uniform vec2 resolution;
 		uniform sampler2D tNormal;
+		uniform float blurScale;
 
 		varying vec2 vUv;
 
 		void main() {
-			vec2 texelSize = ( 1.0 / resolution );
+			vec2 texelSize = ( 1.0 / resolution ) * blurScale;
 			float result = 0.0;
 			float weightSum = 0.0;
 			vec3 baseNoise = 2.0 * ( texture2D( tNoise, vUv * resolution / 1024.0 ).xyz - 0.5 );

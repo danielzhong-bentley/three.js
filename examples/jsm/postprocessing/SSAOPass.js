@@ -55,6 +55,8 @@ class SSAOPass extends Pass {
 
 		this.minDistance = 0.005;
 		this.maxDistance = 0.1;
+		this.aoPower = 1.5;  // Default AO power factor
+        this.blurScale = 1.0; // Default blur scale factor
 
 		this._visibilityCache = new Map();
 
@@ -127,8 +129,10 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'cameraInverseViewMatrix' ].value.copy( this.camera.matrixWorld );
 		this.ssaoMaterial.uniforms[ 'cameraViewMatrix' ].value.copy( this.camera.matrixWorldInverse );
 		this.ssaoMaterial.uniforms[ 'cameraPosition' ] = { value: new Vector3() };
+		if (this.ssaoMaterial.uniforms['aoPower'] !== undefined) {
+			this.ssaoMaterial.uniforms['aoPower'].value = this.aoPower;
+		}
 		
-
 
 		// normal material
 
@@ -151,11 +155,25 @@ class SSAOPass extends Pass {
             fragmentShader: SSAOBlurShaderOld.fragmentShader
         });
 
-		this.blurMaterial = this.blurMaterialNew;
+		const savedBlurShaderType = localStorage.getItem('blurShaderType') || 'Blur New';
+		if (savedBlurShaderType === 'Blur New') {
+			this.blurMaterial = this.blurMaterialNew;
+		} else if (savedBlurShaderType === 'Blur Old') {
+			this.blurMaterial = this.blurMaterialOld;
+		} else {
+			this.blurMaterial = this.blurMaterialNew;
+		}
 
 		this.blurMaterial.uniforms[ 'tDiffuse' ].value = this.ssaoRenderTarget.texture;
 		this.blurMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
-		this.blurMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
+		
+		if (this.blurMaterial.uniforms['tNormal'] !== undefined) {
+			this.blurMaterial.uniforms['tNormal'].value = this.normalRenderTarget.texture;
+		}
+		if (this.blurMaterial.uniforms['blurScale'] !== undefined) {
+			this.blurMaterial.uniforms['blurScale'].value = this.blurScale;
+		}
+		
 
 		// material for rendering the depth
 
@@ -218,7 +236,22 @@ class SSAOPass extends Pass {
 
 		window.location.reload();
 	}
-
+	setAOPower(power) {
+		this.aoPower = power;
+	
+		if (this.ssaoMaterial.uniforms['aoPower'] !== undefined) {
+			this.ssaoMaterial.uniforms['aoPower'].value = power;
+		}
+	}
+	
+	setBlurScale(scale) {
+		this.blurScale = scale;
+	
+		if (this.blurMaterial.uniforms['blurScale'] !== undefined) {
+			this.blurMaterial.uniforms['blurScale'].value = scale;
+		}
+	}
+	
 
 
 	dispose() {
@@ -254,7 +287,10 @@ class SSAOPass extends Pass {
 		  texture.minFilter = NearestFilter;
 		  this.noiseTexture = texture; // Assign the loaded texture to SSAO shader uniform
 		  this.ssaoMaterial.uniforms['tNoise'].value = this.noiseTexture;
-		  this.blurMaterial.uniforms[ 'tNoise' ].value = this.noiseTexture;
+		  if (this.blurMaterial.uniforms['tNoise'] !== undefined) {
+			this.blurMaterial.uniforms['tNoise'].value = this.noiseTexture;
+		}
+		
 		});
 	  }
 
