@@ -55,9 +55,9 @@ class SSAOPass extends Pass {
 
 		this.minDistance = 0.005;
 		this.maxDistance = 0.1;
-		this.aoPower = 1.5;  // Default AO power factor
-        this.blurScale = 1.0; // Default blur scale factor
-
+		this.aoPower = 1.5;
+        this.blurScale = 1.0; 
+		this.blurSampleCount = 3;
 		this._visibilityCache = new Map();
 
 		const storedKernelSize = localStorage.getItem('kernelSize');
@@ -275,7 +275,11 @@ class SSAOPass extends Pass {
 		}
 	}
 	
-
+	setBlurSampleCount(sampleCount) {
+        if (this.blurMaterial.uniforms['blurSampleCount'] !== undefined) {
+            this.blurMaterial.uniforms['blurSampleCount'].value = sampleCount;
+        }
+    }
 
 	dispose() {
 

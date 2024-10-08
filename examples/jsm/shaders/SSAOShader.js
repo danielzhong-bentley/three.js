@@ -300,6 +300,7 @@ const SSAOBlurShader = {
 		'resolution': { value: new Vector2() },
 		'tNormal': { value: null },
 		'blurScale': { value: 1.0 },
+		'blurSampleCount': { value: 3 },
 	},
 
 	vertexShader:
@@ -320,6 +321,7 @@ const SSAOBlurShader = {
 		uniform vec2 resolution;
 		uniform sampler2D tNormal;
 		uniform float blurScale;
+		uniform int blurSampleCount;
 
 		varying vec2 vUv;
 
@@ -330,8 +332,8 @@ const SSAOBlurShader = {
 			vec3 baseNoise = 2.0 * ( texture2D( tNoise, vUv * resolution / 1024.0 ).xyz - 0.5 );
 			vec3 normal = normalize( texture2D( tNormal, vUv ).xyz );
 
-			for ( int i = -3; i <= 3; i+=2 ) {
-				for ( int j = -3; j <= 3; j+=2 ) {
+			for (int i = -blurSampleCount; i <= blurSampleCount; i += 2) {
+				for (int j = -blurSampleCount; j <= blurSampleCount; j += 2) {
 
 					// Sample noise texture for each kernel point
 					vec2 sampleOffset = vec2(float(i), float(j)) * texelSize; 
