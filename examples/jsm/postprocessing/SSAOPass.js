@@ -137,12 +137,22 @@ class SSAOPass extends Pass {
 
 		// blur material
 
-		this.blurMaterial = new ShaderMaterial( {
-			defines: Object.assign( {}, SSAOBlurShader.defines ),
-			uniforms: UniformsUtils.clone( SSAOBlurShader.uniforms ),
-			vertexShader: SSAOBlurShader.vertexShader,
-			fragmentShader: SSAOBlurShader.fragmentShader
-		} );
+		this.blurMaterialNew = new ShaderMaterial({
+            defines: Object.assign({}, SSAOBlurShader.defines),
+            uniforms: UniformsUtils.clone(SSAOBlurShader.uniforms),
+            vertexShader: SSAOBlurShader.vertexShader,
+            fragmentShader: SSAOBlurShader.fragmentShader
+        });
+
+        this.blurMaterialOld = new ShaderMaterial({
+            defines: Object.assign({}, SSAOBlurShaderOld.defines),
+            uniforms: UniformsUtils.clone(SSAOBlurShaderOld.uniforms),
+            vertexShader: SSAOBlurShaderOld.vertexShader,
+            fragmentShader: SSAOBlurShaderOld.fragmentShader
+        });
+
+		this.blurMaterial = this.blurMaterialNew;
+
 		this.blurMaterial.uniforms[ 'tDiffuse' ].value = this.ssaoRenderTarget.texture;
 		this.blurMaterial.uniforms[ 'resolution' ].value.set( this.width, this.height );
 		this.blurMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
@@ -182,6 +192,18 @@ class SSAOPass extends Pass {
 		this.originalClearColor = new Color();
 
 	}
+
+	toggleBlurShader(type) {
+        localStorage.setItem('selectedBlurShader', type);
+
+        if (type === 'Blur New') {
+            this.blurMaterial = this.blurMaterialNew;
+        } else if (type === 'Blur Old') {
+            this.blurMaterial = this.blurMaterialOld;
+        }
+
+        window.location.reload();
+    }
 
 	toggleShader(type) {
 		localStorage.setItem('selectedShader', type);
