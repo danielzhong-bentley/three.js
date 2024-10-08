@@ -42,9 +42,9 @@
         let camera, scene, renderer, controls;
         let composer;
         let model;
+        let hemisphereLight, directionalLight, ambientLight;
 
         init();
-
         function init() {
 
             container = document.createElement('div');
@@ -68,8 +68,18 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xaaaaaa);
 
-            scene.add(new THREE.DirectionalLight(0xffffff, 4));
-            scene.add(new THREE.AmbientLight(0xffffff));
+            directionalLight = new THREE.DirectionalLight(0xffffff, 4);
+            ambientLight = new THREE.AmbientLight(0xffffff);
+            hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+            const dirLightHelper = new THREE.DirectionalLightHelper(directionalLight, 30);
+            scene.add(dirLightHelper);
+            const hemiLightHelper = new THREE.HemisphereLightHelper(hemisphereLight, 30);
+            scene.add(hemiLightHelper);
+
+            scene.add(directionalLight);
+            scene.add(ambientLight);
+            scene.add(hemisphereLight);
+        
 
             stats = new Stats();
             container.appendChild(stats.dom);
@@ -110,6 +120,40 @@
 
             // Init GUI
             const gui = new GUI();
+
+            const lightFolder = gui.addFolder('Lights');
+            lightFolder.add(directionalLight, 'visible').name('Directional Light');
+            lightFolder.add(ambientLight, 'visible').name('Ambient Light');
+            lightFolder.add(hemisphereLight, 'visible').name('Hemisphere Light');
+            lightFolder.add(directionalLight, 'intensity').min(0).max(10).step(0.1).name('Directional Light Intensity');
+            lightFolder.add(hemisphereLight, 'intensity').min(0).max(10).step(0.1).name('Hemisphere Light Intensity');
+
+            // Add controls to adjust directional light position
+            const dirLightPositionFolder = lightFolder.addFolder('Directional Light Position');
+            dirLightPositionFolder.add(directionalLight.position, 'x').min(-100).max(100).step(1).name('X Position');
+            dirLightPositionFolder.add(directionalLight.position, 'y').min(-100).max(100).step(1).name('Y Position');
+            dirLightPositionFolder.add(directionalLight.position, 'z').min(-100).max(100).step(1).name('Z Position');
+
+            // Add controls to adjust directional light rotation (affects direction)
+            const dirLightRotationFolder = lightFolder.addFolder('Directional Light Rotation');
+            dirLightRotationFolder.add(directionalLight.rotation, 'x').min(-Math.PI).max(Math.PI).step(0.01).name('X Rotation');
+            dirLightRotationFolder.add(directionalLight.rotation, 'y').min(-Math.PI).max(Math.PI).step(0.01).name('Y Rotation');
+            dirLightRotationFolder.add(directionalLight.rotation, 'z').min(-Math.PI).max(Math.PI).step(0.01).name('Z Rotation');
+
+            // Add controls to adjust hemisphere light position
+            const hemiLightPositionFolder = lightFolder.addFolder('Hemisphere Light Position');
+            hemiLightPositionFolder.add(hemisphereLight.position, 'x').min(-100).max(100).step(1).name('X Position');
+            hemiLightPositionFolder.add(hemisphereLight.position, 'y').min(-100).max(100).step(1).name('Y Position');
+            hemiLightPositionFolder.add(hemisphereLight.position, 'z').min(-100).max(100).step(1).name('Z Position');
+
+            // Add controls to adjust hemisphere light rotation (affects how it lights the scene)
+            const hemiLightRotationFolder = lightFolder.addFolder('Hemisphere Light Rotation');
+            hemiLightRotationFolder.add(hemisphereLight.rotation, 'x').min(-Math.PI).max(Math.PI).step(0.01).name('X Rotation');
+            hemiLightRotationFolder.add(hemisphereLight.rotation, 'y').min(-Math.PI).max(Math.PI).step(0.01).name('Y Rotation');
+            hemiLightRotationFolder.add(hemisphereLight.rotation, 'z').min(-Math.PI).max(Math.PI).step(0.01).name('Z Rotation');
+
+
+            lightFolder.open();
          
             const savedOutput = localStorage.getItem('ssaoOutput') || SSAOPass.OUTPUT.Default;
 
