@@ -16,7 +16,7 @@ const SSAOShader = {
 
 	defines: {
 		'PERSPECTIVE_CAMERA': 1,
-		'KERNEL_SIZE': 32
+		// 'KERNEL_SIZE': 32
 	},
 
 	uniforms: {
@@ -36,6 +36,7 @@ const SSAOShader = {
 		'minDistance': { value: 0.005 },
 		'maxDistance': { value: 0.05 },
 		'aoPower': { value: 1.5 },
+		'kernelSize': { value: 32 },
 	},
 
 	vertexShader: /* glsl */`
@@ -54,6 +55,8 @@ const SSAOShader = {
 		uniform highp sampler2D tNormal;
 		uniform highp sampler2D tDepth;
 		uniform sampler2D tNoise;
+
+		uniform int kernelSize;
 
 		uniform vec3 kernel[ KERNEL_SIZE ];
 

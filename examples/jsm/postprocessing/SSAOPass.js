@@ -60,6 +60,11 @@ class SSAOPass extends Pass {
 
 		this._visibilityCache = new Map();
 
+		const storedKernelSize = localStorage.getItem('kernelSize');
+        this.kernelSize = storedKernelSize ? parseInt(storedKernelSize, 10) : kernelSize;
+
+		
+
 		this.advancedSSAO = new ShaderMaterial({
 			defines: Object.assign({}, SSAOShader.defines),
 			uniforms: UniformsUtils.clone(SSAOShader.uniforms),
@@ -133,6 +138,9 @@ class SSAOPass extends Pass {
 			this.ssaoMaterial.uniforms['aoPower'].value = this.aoPower;
 		}
 		
+		if (this.ssaoMaterial.uniforms['kernelSize'] !== undefined) {
+			this.ssaoMaterial.uniforms['kernelSize'].value = this.kernelSize;
+		}
 
 		// normal material
 
@@ -210,6 +218,21 @@ class SSAOPass extends Pass {
 		this.originalClearColor = new Color();
 
 	}
+
+	setKernelSize(size) {
+        this.kernelSize = size;
+        localStorage.setItem('kernelSize', size);  // Save the value in localStorage
+
+        // Regenerate the kernel and apply it dynamically without reloading the page
+        this.generateSampleKernel(size);  // Regenerate the kernel with the new size
+        if (this.ssaoMaterial.uniforms['kernel'] !== undefined) {
+            this.ssaoMaterial.uniforms['kernel'].value = this.kernel;
+        }
+        if (this.ssaoMaterial.defines['KERNEL_SIZE'] !== undefined) {
+            this.ssaoMaterial.defines['KERNEL_SIZE'] = size;
+        }
+        this.ssaoMaterial.needsUpdate = true;  // Force the material to update
+    }
 
 	toggleBlurShader(type) {
         localStorage.setItem('selectedBlurShader', type);
