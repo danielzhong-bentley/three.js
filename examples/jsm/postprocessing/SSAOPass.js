@@ -345,6 +345,7 @@ class SSAOPass extends Pass {
 		this.ssaoMaterial.uniforms[ 'kernelRadius' ].value = this.kernelRadius;
 		this.ssaoMaterial.uniforms[ 'minDistance' ].value = this.minDistance;
 		this.ssaoMaterial.uniforms[ 'maxDistance' ].value = this.maxDistance;
+		this.ssaoMaterial.uniforms['tDiffuse'].value = readBuffer.texture;
 		this.ssaoMaterial.uniforms[ 'cameraPosition' ].value.copy( this.camera.position );
 		this.renderPass( renderer, this.ssaoMaterial, this.ssaoRenderTarget );
 

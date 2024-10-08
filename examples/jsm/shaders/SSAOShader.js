@@ -37,6 +37,8 @@ const SSAOShader = {
 		'maxDistance': { value: 0.05 },
 		'aoPower': { value: 1.5 },
 		'kernelSize': { value: 32 },
+		'giMix': { value: 0.5 },
+		'tDiffuse': { value: null },
 	},
 
 	vertexShader: /* glsl */`
@@ -55,6 +57,7 @@ const SSAOShader = {
 		uniform highp sampler2D tNormal;
 		uniform highp sampler2D tDepth;
 		uniform sampler2D tNoise;
+		uniform sampler2D tDiffuse;
 
 		uniform int kernelSize;
 
@@ -74,6 +77,7 @@ const SSAOShader = {
 		uniform float maxDistance; // avoid the influence of fragments which are too far away
 		// uniform vec3 cameraPosition;
 		uniform float aoPower; 
+		uniform float giMix;
 
 		varying vec2 vUv;
 
@@ -158,6 +162,10 @@ const SSAOShader = {
 			return getWorldPosition( sampleViewPosition );
 		}
 
+		vec3 getColor( const in vec2 screenPosition ) {
+			return texture2D( tDiffuse, screenPosition ).rgb;
+		}
+
 		void main() {
 
 			float depth = getDepth( vUv );
@@ -219,7 +227,15 @@ const SSAOShader = {
 				}
 
 				occlusion = pow(1.0 - occlusion, aoPower);
-				gl_FragColor = vec4( vec3( occlusion ), 1.0 );
+				vec3 sceneColor = getColor( vUv );
+
+				// Mix the scene color with white (for GI effect)
+				vec3 giColor = mix( vec3(1.0), sceneColor, giMix );
+
+				// Apply AO to the mixed GI color
+				vec3 finalColor = giColor * occlusion;
+
+				gl_FragColor = vec4( finalColor, 1.0 );
 			}
 
 		}`
