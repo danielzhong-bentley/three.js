@@ -131,12 +131,34 @@
             gui.add(shaderOptions, 'ssaoType', ['Advanced', 'SSAO Old']).name('AO Type').onChange(function (value) {
                 ssaoPass.toggleShader(value);
                 localStorage.setItem('shaderType', value);
+                updateShaderSettingsGUI(value);
             });
 
-
             gui.add(ssaoPass, 'kernelRadius').min(0).max(128);
-            gui.add(ssaoPass, 'minDistance').min(0.001).max(0.02);
-            gui.add(ssaoPass, 'maxDistance').min(0.01).max(1.0);
+
+            const minDistanceControl = gui.add(ssaoPass, 'minDistance').min(0.001).max(0.02).step(0.001).name('Min Distance');
+            const maxDistanceControl = gui.add(ssaoPass, 'maxDistance').min(0.01).max(1.0).step(0.01).name('Max Distance');
+
+            function updateShaderSettingsGUI(shaderType) {
+                if (shaderType === 'Advanced') {
+                    minDistanceControl.hide();
+
+                    maxDistanceControl.name('AO Radius Scale')
+                        .min(0.01).max(10.0).step(0.1).setValue(3.0);
+                } else if (shaderType === 'SSAO Old') {
+                    minDistanceControl.show();
+
+                    maxDistanceControl.name('Max Distance')
+                        .min(0.01).max(1.0).step(0.01);
+                }
+            }
+
+            updateShaderSettingsGUI(shaderOptions.ssaoType);
+
+
+            
+            // gui.add(ssaoPass, 'minDistance').min(0.001).max(0.02);
+            // gui.add(ssaoPass, 'maxDistance').min(0.01).max(1.0);
             gui.add(ssaoPass, 'enabled');
 
             window.addEventListener('resize', onWindowResize);
