@@ -1,6 +1,7 @@
 import {
 	Matrix4,
-	Vector2
+	Vector2,
+	Vector3
 } from 'three';
 
 /**
@@ -10,9 +11,9 @@ import {
  * https://github.com/McNopper/OpenGL/blob/master/Example28/shader/ssao.frag.glsl
  */
 
-const SSAOShader = {
+const SSAOShaderOld = {
 
-	name: 'SSAOShader',
+	name: 'SSAOShaderOld',
 
 	defines: {
 		'PERSPECTIVE_CAMERA': 1,
@@ -20,7 +21,6 @@ const SSAOShader = {
 	},
 
 	uniforms: {
-
 		'tNormal': { value: null },
 		'tDepth': { value: null },
 		'tNoise': { value: null },
@@ -35,6 +35,7 @@ const SSAOShader = {
 		'kernelRadius': { value: 8 },
 		'minDistance': { value: 0.005 },
 		'maxDistance': { value: 0.05 },
+		'cameraPosition': { value: new Vector3() }
 
 	},
 
@@ -69,7 +70,6 @@ const SSAOShader = {
 		uniform float kernelRadius;
 		uniform float minDistance; // avoid artifacts caused by neighbour fragments with minimal depth difference
 		uniform float maxDistance; // avoid the influence of fragments which are too far away
-		// uniform vec3 cameraPosition;
 
 		varying vec2 vUv;
 
@@ -82,7 +82,6 @@ const SSAOShader = {
 		}
 
 		float getLinearDepth( const in vec2 screenPosition ) {
-			// return texture2D( tDepth, screenPosition ).x;
 
 			#if PERSPECTIVE_CAMERA == 1
 
@@ -129,30 +128,6 @@ const SSAOShader = {
 			return unpackRGBToNormal( texture2D( tNormal, screenPosition ).xyz );
 
 		}
-			
-		vec3 getWorldPosition( const in vec3 viewPosition ) {
-			vec4 viewPos4 = vec4(viewPosition, 1.0);
-
-			vec4 worldPosition = cameraInverseViewMatrix * viewPos4;
-
-			return worldPosition.xyz;
-		}
-
-		vec3 getWorldNormal( const in vec3 viewNormal ) {
-			return normalize((cameraInverseViewMatrix * vec4(viewNormal, 0.0)).xyz);
-		}
-
-		vec2 projectWorldPositionToScreenSpace(vec3 worldPos) {
-			vec4 samplePointNDC = cameraProjectionMatrix * cameraViewMatrix * vec4( worldPos, 1.0 ); // project point and calculate NDC
-			samplePointNDC /= samplePointNDC.w;
-			return samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
-		}
-
-		vec3 sampleDepthToWorldPosition(vec2 screenCoord, float sampleDepth) {
-			float sampleViewZ = getViewZ( sampleDepth );
-			vec3 sampleViewPosition = getViewPosition( screenCoord, sampleDepth, sampleViewZ );
-			return getWorldPosition( sampleViewPosition );
-		}
 
 		void main() {
 
@@ -160,69 +135,59 @@ const SSAOShader = {
 
 			if ( depth == 1.0 ) {
 
-				// gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 				gl_FragColor = vec4( 1.0 ); // don't influence background
 				
 			} else {
 
 				float viewZ = getViewZ( depth );
+
 				vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
 				vec3 viewNormal = getViewNormal( vUv );
-								
-				// Daniel Zhong's code
-				vec3 worldPosition = getWorldPosition(viewPosition);
-				vec3 worldNormal = getWorldNormal(viewNormal);
-				
-				float Sx = (float(kernelRadius) / 2.0) / resolution.x;
-        		float Sy = (float(kernelRadius) / 2.0) / resolution.y;
-		
-				float worldSpaceZ = dot(worldPosition - cameraPosition, -cameraInverseViewMatrix[2].xyz);
-				float kernelDiagonal = sqrt(Sx * Sx + Sy * Sy);
-				float radius = worldSpaceZ * (kernelDiagonal / cameraNear);
-				// float dynamicMaxDistance = minDistance + radius - maxDistance;
 
-				vec3 random = 2.0 * (vec3( texture2D( tNoise, vUv * resolution / 1024.0 ) ) - 0.5);
+				vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
+				vec3 random = vec3( texture2D( tNoise, vUv * noiseScale ).r );
 
 				// compute matrix used to reorient a kernel vector
 
-				vec3 tangent = normalize( random - worldNormal * dot( random, worldNormal ) );
-				vec3 bitangent = cross( worldNormal, tangent );
-				mat3 kernelMatrix = mat3( tangent, bitangent, worldNormal );
+				vec3 tangent = normalize( random - viewNormal * dot( random, viewNormal ) );
+				vec3 bitangent = cross( viewNormal, tangent );
+				mat3 kernelMatrix = mat3( tangent, bitangent, viewNormal );
 
-				float AOScale = maxDistance * radius;
 				float occlusion = 0.0;
 
 				for ( int i = 0; i < KERNEL_SIZE; i ++ ) {
 
 					vec3 sampleVector = kernelMatrix * kernel[ i ]; // reorient sample vector in view space
-					vec3 samplePoint = worldPosition + ( sampleVector * AOScale ); // calculate sample point
+					vec3 samplePoint = viewPosition + ( sampleVector * kernelRadius ); // calculate sample point
 
-					if (length(sampleVector - samplePoint) > AOScale * 0.05) {
+					vec4 samplePointNDC = cameraProjectionMatrix * vec4( samplePoint, 1.0 ); // project point and calculate NDC
+					samplePointNDC /= samplePointNDC.w;
 
-						vec2 samplePointUv = projectWorldPositionToScreenSpace(samplePoint);
+					vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
 
-						float sampleDepth = getDepth( samplePointUv );
-					
-						vec3 sampleWorldPosition = sampleDepthToWorldPosition(samplePointUv, sampleDepth);
+					float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
+					float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
+					float delta = sampleDepth - realDepth;
 
-						float worldDistance = length( sampleWorldPosition - worldPosition ) / AOScale;
-						
-						vec3 sampleDirection = normalize(sampleWorldPosition - worldPosition);
-						float lightIntensity = clamp(dot(sampleDirection, normalize(worldNormal)), 0.0, 1.0);
-						float distanceFadeout = clamp(1.0 - (worldDistance - 0.0) / 3.0, 0.0, 1.0);
-						occlusion += lightIntensity * distanceFadeout / float( KERNEL_SIZE );
+					if ( delta > minDistance && delta < maxDistance ) { // if fragment is before sample point, increase occlusion
+
+						occlusion += 1.0;
+
 					}
+
 				}
 
-				occlusion = pow(1.0 - occlusion, 1.5);
-				gl_FragColor = vec4( vec3( occlusion ), 1.0 );
+				occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
+
+				gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+
 			}
 
 		}`
 
 };
 
-const SSAODepthShader = {
+const SSAODepthShaderOld = {
 
 	name: 'SSAODepthShader',
 
@@ -285,16 +250,15 @@ const SSAODepthShader = {
 
 };
 
-const SSAOBlurShader = {
+const SSAOBlurShaderOld = {
 
 	name: 'SSAOBlurShader',
 
 	uniforms: {
 
 		'tDiffuse': { value: null },
-		'tNoise': { value: null },
-		'resolution': { value: new Vector2() },
-		'tNormal': { value: null },
+		'resolution': { value: new Vector2() }
+
 	},
 
 	vertexShader:
@@ -311,51 +275,31 @@ const SSAOBlurShader = {
 	fragmentShader:
 
 		`uniform sampler2D tDiffuse;
-		uniform sampler2D tNoise;
+
 		uniform vec2 resolution;
-		uniform sampler2D tNormal;
 
 		varying vec2 vUv;
 
 		void main() {
+
 			vec2 texelSize = ( 1.0 / resolution );
 			float result = 0.0;
-			float weightSum = 0.0;
-			vec3 baseNoise = 2.0 * ( texture2D( tNoise, vUv * resolution / 1024.0 ).xyz - 0.5 );
-			vec3 normal = normalize( texture2D( tNormal, vUv ).xyz );
 
-			for ( int i = -3; i <= 3; i+=2 ) {
-				for ( int j = -3; j <= 3; j+=2 ) {
+			for ( int i = - 2; i <= 2; i ++ ) {
 
-					// Sample noise texture for each kernel point
-					vec2 sampleOffset = vec2(float(i), float(j)) * texelSize; 
-					vec3 sampleNoise = texture2D( tNoise, (vUv + sampleOffset) * resolution / 1024.0 ).xyz;
+				for ( int j = - 2; j <= 2; j ++ ) {
 
-					// Apply baseNoise to introduce consistent randomness across the entire fragment
-					vec2 jitter = ( vec2(baseNoise.x, baseNoise.y) + vec2(sampleNoise.x * 2.0 - 1.0, sampleNoise.y * 2.0 - 1.0) ) * 0.5 * texelSize;
-					vec2 finalOffset = sampleOffset + jitter;
+					vec2 offset = ( vec2( float( i ), float( j ) ) ) * texelSize;
+					result += texture2D( tDiffuse, vUv + offset ).r;
 
-					// Sample the normal of the neighboring pixel
-					vec3 sampleNormal = normalize( texture2D( tNormal, vUv + finalOffset ).xyz );
-
-					float weight = max(dot(normal, sampleNormal), 0.0); // Use max to ensure non-negative weight
-
-					result += texture2D( tDiffuse, vUv + finalOffset ).r * weight;
-
-					// Sum the weights for normalization
-					weightSum += weight;
 				}
-    		}
 
-			// Normalize the result by dividing by the sum of weights
-			if (weightSum > 0.0) {
-				result /= weightSum;
 			}
 
-			// Set the final blurred color
-			gl_FragColor = vec4( vec3( result ), 1.0 );
+			gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
+
 		}`
 
 };
 
-export { SSAOShader, SSAODepthShader, SSAOBlurShader };
+export { SSAOShaderOld, SSAODepthShaderOld, SSAOBlurShaderOld };

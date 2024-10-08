@@ -27,6 +27,8 @@ import { Pass, FullScreenQuad } from './Pass.js';
 import { SimplexNoise } from '../math/SimplexNoise.js';
 import { SSAOShader } from '../shaders/SSAOShader.js';
 import { SSAOBlurShader } from '../shaders/SSAOShader.js';
+import { SSAOShaderOld } from '../shaders/SSAOShaderOld.js';
+import { SSAOBlurShaderOld } from '../shaders/SSAOShaderOld.js';
 import { SSAODepthShader } from '../shaders/SSAOShader.js';
 import { CopyShader } from '../shaders/CopyShader.js';
 import { ImprovedNoise } from '../math/ImprovedNoise.js';
@@ -51,12 +53,26 @@ class SSAOPass extends Pass {
 		this.noiseTexture = null;
 		this.output = 0;
 
-		this.minDistance = 1.0;
-		this.maxDistance = 3.0;
+		this.minDistance = 0.005;
+		this.maxDistance = 0.1;
 
 		this._visibilityCache = new Map();
 
-		//
+		this.advancedSSAO = new ShaderMaterial({
+			defines: Object.assign({}, SSAOShader.defines),
+			uniforms: UniformsUtils.clone(SSAOShader.uniforms),
+			vertexShader: SSAOShader.vertexShader,
+			fragmentShader: SSAOShader.fragmentShader,
+			blending: NoBlending
+		} );
+
+		this.oldSSAO = new ShaderMaterial({
+			defines: Object.assign({}, SSAOShaderOld.defines),
+			uniforms: UniformsUtils.clone(SSAOShaderOld.uniforms),
+			vertexShader: SSAOShaderOld.vertexShader,
+			fragmentShader: SSAOShaderOld.fragmentShader,
+			blending: NoBlending
+		} );
 
 		this.generateSampleKernel( kernelSize );
 		this.loadBlueNoiseTexture();
@@ -85,13 +101,17 @@ class SSAOPass extends Pass {
 
 		// ssao material
 
-		this.ssaoMaterial = new ShaderMaterial( {
-			defines: Object.assign( {}, SSAOShader.defines ),
-			uniforms: UniformsUtils.clone( SSAOShader.uniforms ),
-			vertexShader: SSAOShader.vertexShader,
-			fragmentShader: SSAOShader.fragmentShader,
-			blending: NoBlending
-		} );
+		const savedShaderType = localStorage.getItem('selectedShader') || 'Advanced'; // Default to 'Advanced'
+
+        // Apply the correct shader based on the stored value
+        if (savedShaderType === 'Advanced') {
+            this.ssaoMaterial = this.advancedSSAO;
+        } else if (savedShaderType === 'SSAO Old') {
+            this.ssaoMaterial = this.oldSSAO;
+        } else {
+            console.warn('Unknown SSAO shader type: ' + savedShaderType);
+            this.ssaoMaterial = this.advancedSSAO;  // Fallback to 'Advanced'
+        }
 
 		this.ssaoMaterial.defines[ 'KERNEL_SIZE' ] = kernelSize;
 
@@ -162,6 +182,22 @@ class SSAOPass extends Pass {
 		this.originalClearColor = new Color();
 
 	}
+
+	toggleShader(type) {
+		localStorage.setItem('selectedShader', type);
+
+		if (type === 'Advanced') {
+			this.minDistance = 0.0;
+			this.maxDistance = 3.0;
+		} else if (type === 'SSAO Old') {
+			this.minDistance = 0.005;
+			this.maxDistance = 0.1;
+		}
+
+		window.location.reload();
+	}
+
+
 
 	dispose() {
 

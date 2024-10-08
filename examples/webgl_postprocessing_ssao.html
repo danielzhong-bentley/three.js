@@ -110,18 +110,33 @@
 
             // Init GUI
             const gui = new GUI();
+         
             gui.add(ssaoPass, 'output', {
                 'Default': SSAOPass.OUTPUT.Default,
-                'SSAO Only': SSAOPass.OUTPUT.SSAO,
-                'SSAO Only + Blur': SSAOPass.OUTPUT.Blur,
+                'AO Only': SSAOPass.OUTPUT.SSAO,
+                'AO + Blur': SSAOPass.OUTPUT.Blur,
                 'Depth': SSAOPass.OUTPUT.Depth,
                 'Normal': SSAOPass.OUTPUT.Normal
             }).onChange(function (value) { 
                 ssaoPass.output = value;
             });
+
+            const shaderOptions = { ssaoType: 'Advanced' };
+
+            const savedShaderType = localStorage.getItem('shaderType');
+            if (savedShaderType) {
+                shaderOptions.ssaoType = savedShaderType;
+            }
+
+            gui.add(shaderOptions, 'ssaoType', ['Advanced', 'SSAO Old']).name('AO Type').onChange(function (value) {
+                ssaoPass.toggleShader(value);
+                localStorage.setItem('shaderType', value);
+            });
+
+
             gui.add(ssaoPass, 'kernelRadius').min(0).max(128);
-            gui.add(ssaoPass, 'minDistance').min(0.001).max(50.0);
-            gui.add(ssaoPass, 'maxDistance').min(0.01).max(150.0);
+            gui.add(ssaoPass, 'minDistance').min(0.001).max(0.02);
+            gui.add(ssaoPass, 'maxDistance').min(0.01).max(1.0);
             gui.add(ssaoPass, 'enabled');
 
             window.addEventListener('resize', onWindowResize);
