@@ -43,6 +43,8 @@
         let composer;
         let model;
         let hemisphereLight, directionalLight, ambientLight;
+        let originalMaterials = {};
+        let texturesVisible = true;
 
         init();
         function init() {
@@ -113,6 +115,12 @@
                 model = gltf.scene;
                 model.position.set(0, 0, 0);
                 model.scale.set(50, 50, 50);
+
+                model.traverse((child) => {
+                if (child.isMesh) {
+                    originalMaterials[child.uuid] = child.material; // Store original material
+                }
+            });
                 scene.add(model);
             }, undefined, (error) => {
                 console.error('An error happened', error);
@@ -249,8 +257,24 @@
             updateShaderSettingsGUI(shaderOptions.ssaoType);
 
             gui.add(ssaoPass, 'enabled');
+            gui.add({ toggleTextures }, 'toggleTextures').name('Toggle Textures');
 
             window.addEventListener('resize', onWindowResize);
+        }
+
+        function toggleTextures() {
+            texturesVisible = !texturesVisible; // Toggle flag
+
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    if (!texturesVisible) {
+                        child.material = new THREE.MeshLambertMaterial({ color: 0x888888 }); // Gray material for AO view
+                    } else {
+                        // Restore original material
+                        child.material = originalMaterials[child.uuid];
+                    }
+                }
+            });
         }
 
         function onWindowResize() {
