@@ -235,7 +235,8 @@ const SSAOShader = {
 				// Apply AO to the mixed GI color
 				vec3 finalColor = giColor * occlusion;
 
-				gl_FragColor = vec4( finalColor, 1.0 );
+				// gl_FragColor = vec4( finalColor, 1.0 );
+				gl_FragColor = vec4( vec3( occlusion ), 1.0 );
 			}
 
 		}`

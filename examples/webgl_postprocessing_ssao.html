@@ -161,7 +161,7 @@
             hemiLightRotationFolder.add(hemisphereLight.rotation, 'z').min(-Math.PI).max(Math.PI).step(0.01).name('Z Rotation');
 
 
-            lightFolder.open();
+            lightFolder.close();
          
             const savedOutput = localStorage.getItem('ssaoOutput') || SSAOPass.OUTPUT.Default;
 
@@ -223,12 +223,12 @@
                     ssaoPass.setAOPower(value);
                 });
 
-                blurScaleControl = advancedControlsFolder.add(ssaoPass, 'blurScale').min(0.5).max(3.0).step(0.1).name('Blur Scale').onChange(function (value) {
-                    ssaoPass.setBlurScale(value);
-                });
-
                 advancedControlsFolder.add(ssaoPass, 'kernelSize').min(4).max(128).step(1).name('SSAO Kernel Size').onChange(function (value) {
                     ssaoPass.setKernelSize(value);
+                });
+
+                blurScaleControl = advancedControlsFolder.add(ssaoPass, 'blurScale').min(0.5).max(3.0).step(0.1).name('Blur Scale').onChange(function (value) {
+                    ssaoPass.setBlurScale(value);
                 });
 
                 advancedControlsFolder.add(ssaoPass, 'blurSampleCount').min(1).max(15).step(1).name('Blur Sample Count').onChange(function (value) {
@@ -258,7 +258,7 @@
 
             gui.add(ssaoPass, 'enabled');
             gui.add({ toggleTextures }, 'toggleTextures').name('Toggle Textures');
-            gui.add(ssaoPass.ssaoMaterial.uniforms['giMix'], 'value').min(0).max(1).step(0.01).name('GI Mix');
+            // gui.add(ssaoPass.ssaoMaterial.uniforms['giMix'], 'value').min(0).max(1).step(0.01).name('GI Mix');
 
             window.addEventListener('resize', onWindowResize);
         }
