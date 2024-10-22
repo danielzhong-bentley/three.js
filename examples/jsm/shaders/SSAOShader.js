@@ -179,8 +179,11 @@ const SSAOShader = {
 				return vec3(1.0, 0.5, 0.0); // orange for medium-high occlusion
 			} else if (occlusion < 1.0){
 				return vec3(1.0, 0.0, 0.0); // red for high occlusion
-			} else if (occlusion > 1.0){
+			} else if (occlusion == 1.0){
 				return vec3(0.0, 0.0, 0.0); // black for high occlusion
+			}
+			else {
+				return vec3(1.0, 1.0, 1.0);
 			}
 		}
 
@@ -240,13 +243,22 @@ const SSAOShader = {
 						vec3 sampleDirection = normalize(sampleWorldPosition - worldPosition);
 						float lightIntensity = clamp(dot(sampleDirection, normalize(worldNormal)), 0.0, 1.0);
 						float distanceFadeout = clamp(1.0 - (worldDistance - 0.0) / 3.0, 0.0, 1.0);
-						occlusion += lightIntensity * distanceFadeout / float( KERNEL_SIZE );
-					}
-				}
 
+						float sampleOcclusion = lightIntensity * distanceFadeout  / float(KERNEL_SIZE);
+        				occlusion += sampleOcclusion;
+						
+					}
+				} 
+				float kHigherOcclusion = 0.96;
+				
+				
 				
 
 				occlusion = pow(1.0 - occlusion, aoPower);
+
+				
+				occlusion = clamp(occlusion / kHigherOcclusion, 0.0, 1.0);
+				
 				if (debugMode) {
 					vec3 debugColor = debugOcclusionColor(occlusion);
 					gl_FragColor = vec4( vec3( debugColor ), 1.0 );
