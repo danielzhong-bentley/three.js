@@ -47,6 +47,7 @@ class SSAOPass extends Pass {
 
 		this.camera = camera;
 		this.scene = scene;
+		
 
 		this.kernelRadius = 8;
 		this.kernel = [];
@@ -59,6 +60,9 @@ class SSAOPass extends Pass {
         this.blurScale = 1.0; 
 		this.blurSampleCount = 3;
 		this._visibilityCache = new Map();
+
+		this.debugMode = false;
+        
 
 		const storedKernelSize = localStorage.getItem('kernelSize');
         this.kernelSize = storedKernelSize ? parseInt(storedKernelSize, 10) : kernelSize;
@@ -119,7 +123,7 @@ class SSAOPass extends Pass {
             console.warn('Unknown SSAO shader type: ' + savedShaderType);
             this.ssaoMaterial = this.advancedSSAO;  // Fallback to 'Advanced'
         }
-
+		this.ssaoMaterial.uniforms['debugMode'] = { value: false };
 		this.ssaoMaterial.defines[ 'KERNEL_SIZE' ] = kernelSize;
 
 		this.ssaoMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
@@ -348,6 +352,11 @@ class SSAOPass extends Pass {
 		if (this.ssaoMaterial.uniforms['tDiffuse']) {
 			this.ssaoMaterial.uniforms['tDiffuse'].value = readBuffer.texture;
 		}
+
+		if (this.ssaoMaterial.uniforms['debugMode']) {
+			this.ssaoMaterial.uniforms['debugMode'].value = this.debugMode ? 1 : 0;
+		}
+
 		this.ssaoMaterial.uniforms[ 'cameraPosition' ].value.copy( this.camera.position );
 		this.renderPass( renderer, this.ssaoMaterial, this.ssaoRenderTarget );
 

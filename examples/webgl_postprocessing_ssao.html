@@ -129,6 +129,11 @@
             // Init GUI
             const gui = new GUI();
 
+            gui.add(ssaoPass, 'debugMode').name('Debug Mode').listen().onChange((value) => {
+                ssaoPass.debugMode = value ? true : false;
+            });
+
+
             const lightFolder = gui.addFolder('Lights');
             lightFolder.add(directionalLight, 'visible').name('Directional Light');
             lightFolder.add(ambientLight, 'visible').name('Ambient Light');

@@ -39,6 +39,7 @@ const SSAOShader = {
 		'kernelSize': { value: 32 },
 		'giMix': { value: 0.5 },
 		'tDiffuse': { value: null },
+		'debugMode': { value: false },
 	},
 
 	vertexShader: /* glsl */`
@@ -78,6 +79,7 @@ const SSAOShader = {
 		// uniform vec3 cameraPosition;
 		uniform float aoPower; 
 		uniform float giMix;
+		uniform bool debugMode;
 
 		varying vec2 vUv;
 
@@ -166,6 +168,22 @@ const SSAOShader = {
 			return texture2D( tDiffuse, screenPosition ).rgb;
 		}
 
+		vec3 debugOcclusionColor(float occlusion) {
+			if (occlusion < 0.2) {
+				return vec3(0.0, 1.0, 0.0); // green for low occlusion
+			} else if (occlusion < 0.4) {
+				return vec3(0.0, 0.0, 1.0); // blue for medium-low occlusion
+			} else if (occlusion < 0.6) {
+				return vec3(1.0, 1.0, 0.0); // yellow for medium occlusion
+			} else if (occlusion < 0.8) {
+				return vec3(1.0, 0.5, 0.0); // orange for medium-high occlusion
+			} else if (occlusion < 1.0){
+				return vec3(1.0, 0.0, 0.0); // red for high occlusion
+			} else if (occlusion > 1.0){
+				return vec3(0.0, 0.0, 0.0); // black for high occlusion
+			}
+		}
+
 		void main() {
 
 			float depth = getDepth( vUv );
@@ -226,17 +244,16 @@ const SSAOShader = {
 					}
 				}
 
+				
+
 				occlusion = pow(1.0 - occlusion, aoPower);
-				vec3 sceneColor = getColor( vUv );
-
-				// Mix the scene color with white (for GI effect)
-				vec3 giColor = mix( vec3(1.0), sceneColor, giMix );
-
-				// Apply AO to the mixed GI color
-				vec3 finalColor = giColor * occlusion;
-
-				// gl_FragColor = vec4( finalColor, 1.0 );
-				gl_FragColor = vec4( vec3( occlusion ), 1.0 );
+				if (debugMode) {
+					vec3 debugColor = debugOcclusionColor(occlusion);
+					gl_FragColor = vec4( vec3( debugColor ), 1.0 );
+				} else {
+					gl_FragColor = vec4( vec3( occlusion ), 1.0 );
+				}
+				
 			}
 
 		}`
