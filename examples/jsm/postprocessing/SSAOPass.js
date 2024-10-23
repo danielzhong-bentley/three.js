@@ -32,6 +32,7 @@ import { SSAOBlurShaderOld } from '../shaders/SSAOShaderOld.js';
 import { SSAODepthShader } from '../shaders/SSAOShader.js';
 import { CopyShader } from '../shaders/CopyShader.js';
 import { ImprovedNoise } from '../math/ImprovedNoise.js';
+import { Vector2 } from 'three';
 
 class SSAOPass extends Pass {
 
@@ -62,7 +63,19 @@ class SSAOPass extends Pass {
 		this._visibilityCache = new Map();
 
 		this.debugMode = false;
-        
+
+		this.mouseUV = new Vector2(0.0, 0.0);
+
+		window.addEventListener('click', (event) => {
+			const x = event.clientX / window.innerWidth;
+			const y = 1.0 - event.clientY / window.innerHeight;
+			this.mouseUV.set(x, y);
+			console.log(x, y);
+			if (this.ssaoMaterial.uniforms['mouseUV'] !== undefined) {
+				this.ssaoMaterial.uniforms['mouseUV'].value.set(x, y);
+			}
+		});
+			
 
 		const storedKernelSize = localStorage.getItem('kernelSize');
         this.kernelSize = storedKernelSize ? parseInt(storedKernelSize, 10) : kernelSize;

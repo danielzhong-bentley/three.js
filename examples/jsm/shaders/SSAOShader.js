@@ -40,6 +40,7 @@ const SSAOShader = {
 		'giMix': { value: 0.5 },
 		'tDiffuse': { value: null },
 		'debugMode': { value: false },
+		'mouseUV': { value: new Vector2(0.0, 0.0) },
 	},
 
 	vertexShader: /* glsl */`
@@ -65,6 +66,7 @@ const SSAOShader = {
 		uniform vec3 kernel[ KERNEL_SIZE ];
 
 		uniform vec2 resolution;
+		uniform vec2 mouseUV;
 
 		uniform float cameraNear;
 		uniform float cameraFar;
@@ -187,9 +189,21 @@ const SSAOShader = {
 			}
 		}
 
+		vec3 getWorldPositionFromUV(vec2 uv) {
+			float depth = texture2D(tDepth, uv).x;
+			float viewZ = perspectiveDepthToViewZ(depth, cameraNear, cameraFar);
+
+			vec4 clipPosition = vec4((uv * 2.0 - 1.0) * vec2(1.0, -1.0), depth, 1.0);
+			clipPosition *= viewZ;
+
+			vec4 worldPosition = cameraInverseProjectionMatrix * clipPosition;
+			return worldPosition.xyz / worldPosition.w;
+		}
+
 		void main() {
 
 			float depth = getDepth( vUv );
+			vec3 mousePosition = getWorldPositionFromUV(mouseUV);
 
 			if ( depth == 1.0 ) {
 
