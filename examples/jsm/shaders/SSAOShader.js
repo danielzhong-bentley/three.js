@@ -195,23 +195,9 @@ const SSAOShader = {
 			return length(posA - posB);
 		}
 
-
-		vec3 getWorldPositionFromUV(vec2 uv) {
-			float depth = texture2D(tDepth, uv).x;
-			float viewZ = perspectiveDepthToViewZ(depth, cameraNear, cameraFar);
-
-			vec4 clipPosition = vec4((uv * 2.0 - 1.0) * vec2(1.0, -1.0), depth, 1.0);
-			clipPosition *= viewZ;
-
-			vec4 worldPosition = cameraInverseProjectionMatrix * clipPosition;
-			return worldPosition.xyz / worldPosition.w;
-		}
-
 		void main() {
 
 			float depth = getDepth( vUv );
-			vec3 fragmentWorldPos = getWorldPositionFromUV(vUv);
-    		vec3 mouseWorldPos = getWorldPositionFromUV(mouseUV);
 
 			if ( depth == 1.0 ) {
 
@@ -227,6 +213,11 @@ const SSAOShader = {
 				// Daniel Zhong's code
 				vec3 worldPosition = getWorldPosition(viewPosition);
 				vec3 worldNormal = getWorldNormal(viewNormal);
+
+				float mouseDepth = getDepth(mouseUV);
+				float mouseViewZ = getViewZ(mouseDepth);
+				vec3 mouseViewPosition = getViewPosition(mouseUV, mouseDepth, mouseViewZ);
+				vec3 mouseWorldPos = getWorldPosition(mouseViewPosition);
 				
 				float Sx = (float(kernelRadius) / 2.0) / resolution.x;
         		float Sy = (float(kernelRadius) / 2.0) / resolution.y;
@@ -283,8 +274,9 @@ const SSAOShader = {
 				if (debugMode) {
 					vec3 debugColor = debugOcclusionColor(debugOcclusion);
 					gl_FragColor = vec4( vec3( debugColor ), 1.0 );
+					
 				} else if (mouseDebugMode) {
-				 	float  distanceToMouse = calculateDistance(fragmentWorldPos, mouseWorldPos);
+				 	float  distanceToMouse = length( mouseWorldPos - worldPosition );
 					vec3 debugColor;
 					if (distanceToMouse < innerRadius) {
 						// Inside inner radius: Green.
@@ -298,6 +290,7 @@ const SSAOShader = {
 						debugColor = vec3(occlusion);
 					}
 					gl_FragColor = vec4(debugColor, 1.0);
+					// gl_FragColor = vec4(mouseWorldPos * 0.1, 1.0); // Scale down for display
 				} else {
 					gl_FragColor = vec4( vec3( occlusion ), 1.0 );
 				}

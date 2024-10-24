@@ -70,6 +70,7 @@ class SSAOPass extends Pass {
 		window.addEventListener('click', (event) => {
 			const x = event.clientX / window.innerWidth;
 			const y = 1.0 - event.clientY / window.innerHeight;
+			console.log(x, y);
 			this.mouseUV.set(x, y);
 			if (this.ssaoMaterial.uniforms['mouseUV'] !== undefined) {
 				this.ssaoMaterial.uniforms['mouseUV'].value.set(x, y);
