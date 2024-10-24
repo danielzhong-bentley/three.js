@@ -19,6 +19,7 @@ import {
 	ShaderMaterial,
 	UniformsUtils,
 	Vector3,
+	Vector4,
 	WebGLRenderTarget,
 	ZeroFactor,
 	TextureLoader
@@ -54,6 +55,7 @@ class SSAOPass extends Pass {
 		this.kernel = [];
 		this.noiseTexture = null;
 		this.output = 0;
+		this.mouseUV = new Vector2(0.0, 0.0);
 
 		this.minDistance = 0.005;
 		this.maxDistance = 0.1;
@@ -64,18 +66,35 @@ class SSAOPass extends Pass {
 
 		this.debugMode = false;
 		this.mouseDebugMode = false;
+		this.renderer = null;
 
 		this.mouseUV = new Vector2(0.0, 0.0);
 
+		// depth texture
+
+		const depthTexture = new DepthTexture();
+		depthTexture.format = DepthStencilFormat;
+		depthTexture.type = UnsignedInt248Type;
+
+		this.depthFramebuffer = new WebGLRenderTarget(this.width, this.height, {
+			minFilter: NearestFilter,
+			magFilter: NearestFilter,
+			depthTexture: depthTexture,
+			depthBuffer: true
+		});
+		
 		window.addEventListener('click', (event) => {
-			const x = event.clientX / window.innerWidth;
-			const y = 1.0 - event.clientY / window.innerHeight;
-			console.log(x, y);
-			this.mouseUV.set(x, y);
+			const pos = this.getWorldPositionFromScreen(event, this.camera);
+			console.log(`World Position: ${pos.x}, ${pos.y}, ${pos.z}`);
+		
+			// Update the SSAO shader uniform with the new world position
 			if (this.ssaoMaterial.uniforms['mouseUV'] !== undefined) {
-				this.ssaoMaterial.uniforms['mouseUV'].value.set(x, y);
+				this.ssaoMaterial.uniforms['mouseUV'].value.copy(pos);
 			}
 		});
+		
+		
+		
 			
 
 		const storedKernelSize = localStorage.getItem('kernelSize');
@@ -103,11 +122,7 @@ class SSAOPass extends Pass {
 		this.loadBlueNoiseTexture();
 		this.generateRandomKernelRotations();
 
-		// depth texture
-
-		const depthTexture = new DepthTexture();
-		depthTexture.format = DepthStencilFormat;
-		depthTexture.type = UnsignedInt248Type;
+		
 
 		// normal render target with depth buffer
 
@@ -237,6 +252,31 @@ class SSAOPass extends Pass {
 		this.originalClearColor = new Color();
 
 	}
+	//https://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
+	// Function to calculate world position from screen coordinates
+	getWorldPositionFromScreen(event, camera) {
+		const vec = new Vector3(); // Reusable vector for efficiency
+		const pos = new Vector3(); // Store the final world position
+	
+		// Step 1: Map the mouse click to normalized device coordinates (NDC)
+		vec.set(
+			(event.clientX / window.innerWidth) * 2 - 1,  // X in NDC
+			-(event.clientY / window.innerHeight) * 2 + 1, // Y in NDC (inverted)
+			0.5 // Z = 0.5 for mid-point depth
+		);
+	
+		// Step 2: Unproject the vector to world coordinates
+		vec.unproject(camera); // Converts from NDC to world space
+	
+		// Step 3: Create a direction vector from the camera position through the unprojected point
+		vec.sub(camera.position).normalize(); // Direction from camera to unprojected point
+	
+		// Step 4: Calculate the intersection point along the ray at Z = 0 (world space)
+		const distance = (0.0 - camera.position.z) / vec.z;
+		pos.copy(camera.position).add(vec.multiplyScalar(distance)); // World position
+	
+		return pos; // Return the calculated world position
+	}
 
 	setKernelSize(size) {
         this.kernelSize = size;
@@ -340,9 +380,58 @@ class SSAOPass extends Pass {
 		});
 	  }
 
+	  // Function to get depth at a specific UV coordinate
+	  getDepthAtUV(uv, renderer, framebuffer, width, height) {
+        const x = Math.floor(uv.x * width);
+        const y = Math.floor(uv.y * height);
+
+        const pixel = new Float32Array(1); // Store depth in a float array
+
+        renderer.setRenderTarget(framebuffer); // Bind framebuffer
+        renderer.readRenderTargetPixels(framebuffer, x, y, 1, 1, pixel); // Read pixel data
+        renderer.setRenderTarget(null); // Reset render target
+
+        return pixel[0]; // Return the depth value
+    }
+
+    // Convert UV to World Space position
+    // Correct the UV to World Position conversion
+	uvToWorld(uv, camera, renderer, framebuffer) {
+		// Retrieve the depth value at the given UV coordinates
+		const depth = this.getDepthAtUV(uv, renderer, framebuffer, this.width, this.height);
+	
+		if (depth === 1.0) {
+			console.warn("No valid depth found. Returning null.");
+			return null; // Handle cases with invalid depth
+		}
+	
+		// Convert the UV + depth to clip space position
+		const clipPos = new Vector4(
+			uv.x * 2.0 - 1.0,  // Convert UV from [0, 1] to [-1, 1] range
+			uv.y * 2.0 - 1.0,
+			depth * 2.0 - 1.0, // Map depth from [0, 1] to [-1, 1]
+			1.0
+		);
+	
+		// Convert from clip space to view space
+		clipPos.applyMatrix4(camera.projectionMatrixInverse);
+		clipPos.divideScalar(clipPos.w); // Normalize homogeneous coordinates
+	
+		// Convert from view space to world space
+		const worldPos = new Vector3(clipPos.x, clipPos.y, clipPos.z);
+		worldPos.applyMatrix4(camera.matrixWorld); // Transform to world space
+	
+		console.log(`UV: ${uv.x}, ${uv.y}, Depth: ${depth}, WorldPos: ${worldPos.x}, ${worldPos.y}, ${worldPos.z}`);
+	
+		return worldPos;
+	}
+	
+
+	
+
 	render( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
 		// render normals and depth (honor only meshes, points and lines do not contribute to SSAO)
-
+		this.renderer = renderer;
 		this.camera.updateMatrixWorld( true );
    		this.camera.updateProjectionMatrix();
 

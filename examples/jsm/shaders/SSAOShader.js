@@ -1,6 +1,7 @@
 import {
 	Matrix4,
-	Vector2
+	Vector2,
+	Vector3
 } from 'three';
 
 /**
@@ -41,7 +42,7 @@ const SSAOShader = {
 		'tDiffuse': { value: null },
 		'debugMode': { value: false },
 		'mouseDebugMode': { value: false },
-		'mouseUV': { value: new Vector2(0.0, 0.0) },
+		'mouseUV': { value: new Vector3(0.0, 0.0, 0.0) },
 	},
 
 	vertexShader: /* glsl */`
@@ -67,7 +68,7 @@ const SSAOShader = {
 		uniform vec3 kernel[ KERNEL_SIZE ];
 
 		uniform vec2 resolution;
-		uniform vec2 mouseUV;
+		uniform vec3 mouseUV;
 
 		uniform float cameraNear;
 		uniform float cameraFar;
@@ -213,11 +214,6 @@ const SSAOShader = {
 				// Daniel Zhong's code
 				vec3 worldPosition = getWorldPosition(viewPosition);
 				vec3 worldNormal = getWorldNormal(viewNormal);
-
-				float mouseDepth = getDepth(mouseUV);
-				float mouseViewZ = getViewZ(mouseDepth);
-				vec3 mouseViewPosition = getViewPosition(mouseUV, mouseDepth, mouseViewZ);
-				vec3 mouseWorldPos = getWorldPosition(mouseViewPosition);
 				
 				float Sx = (float(kernelRadius) / 2.0) / resolution.x;
         		float Sy = (float(kernelRadius) / 2.0) / resolution.y;
@@ -276,7 +272,7 @@ const SSAOShader = {
 					gl_FragColor = vec4( vec3( debugColor ), 1.0 );
 					
 				} else if (mouseDebugMode) {
-				 	float  distanceToMouse = length( mouseWorldPos - worldPosition );
+				 	float  distanceToMouse = length( mouseUV - worldPosition );
 					vec3 debugColor;
 					if (distanceToMouse < innerRadius) {
 						// Inside inner radius: Green.
