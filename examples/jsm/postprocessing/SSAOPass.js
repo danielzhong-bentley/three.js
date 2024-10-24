@@ -63,6 +63,7 @@ class SSAOPass extends Pass {
 		this._visibilityCache = new Map();
 
 		this.debugMode = false;
+		this.mouseDebugMode = false;
 
 		this.mouseUV = new Vector2(0.0, 0.0);
 
@@ -70,7 +71,6 @@ class SSAOPass extends Pass {
 			const x = event.clientX / window.innerWidth;
 			const y = 1.0 - event.clientY / window.innerHeight;
 			this.mouseUV.set(x, y);
-			console.log(x, y);
 			if (this.ssaoMaterial.uniforms['mouseUV'] !== undefined) {
 				this.ssaoMaterial.uniforms['mouseUV'].value.set(x, y);
 			}
@@ -137,6 +137,7 @@ class SSAOPass extends Pass {
             this.ssaoMaterial = this.advancedSSAO;  // Fallback to 'Advanced'
         }
 		this.ssaoMaterial.uniforms['debugMode'] = { value: false };
+		this.ssaoMaterial.uniforms['mouseDebugMode'] = { value: false };
 		this.ssaoMaterial.defines[ 'KERNEL_SIZE' ] = kernelSize;
 
 		this.ssaoMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
@@ -368,6 +369,9 @@ class SSAOPass extends Pass {
 
 		if (this.ssaoMaterial.uniforms['debugMode']) {
 			this.ssaoMaterial.uniforms['debugMode'].value = this.debugMode ? 1 : 0;
+		}
+		if (this.ssaoMaterial.uniforms['mouseDebugMode']) {
+			this.ssaoMaterial.uniforms['mouseDebugMode'].value = this.mouseDebugMode ? 1 : 0;
 		}
 
 		this.ssaoMaterial.uniforms[ 'cameraPosition' ].value.copy( this.camera.position );

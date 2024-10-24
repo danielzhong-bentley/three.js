@@ -40,6 +40,7 @@ const SSAOShader = {
 		'giMix': { value: 0.5 },
 		'tDiffuse': { value: null },
 		'debugMode': { value: false },
+		'mouseDebugMode': { value: false },
 		'mouseUV': { value: new Vector2(0.0, 0.0) },
 	},
 
@@ -82,6 +83,7 @@ const SSAOShader = {
 		uniform float aoPower; 
 		uniform float giMix;
 		uniform bool debugMode;
+		uniform bool mouseDebugMode;
 
 		varying vec2 vUv;
 
@@ -189,6 +191,11 @@ const SSAOShader = {
 			}
 		}
 
+		float calculateDistance(vec3 posA, vec3 posB) {
+			return length(posA - posB);
+		}
+
+
 		vec3 getWorldPositionFromUV(vec2 uv) {
 			float depth = texture2D(tDepth, uv).x;
 			float viewZ = perspectiveDepthToViewZ(depth, cameraNear, cameraFar);
@@ -203,7 +210,8 @@ const SSAOShader = {
 		void main() {
 
 			float depth = getDepth( vUv );
-			vec3 mousePosition = getWorldPositionFromUV(mouseUV);
+			vec3 fragmentWorldPos = getWorldPositionFromUV(vUv);
+    		vec3 mouseWorldPos = getWorldPositionFromUV(mouseUV);
 
 			if ( depth == 1.0 ) {
 
@@ -263,19 +271,33 @@ const SSAOShader = {
 						
 					}
 				} 
-				float kHigherOcclusion = 0.96;
-				
-				
-				
 
-				occlusion = pow(1.0 - occlusion, aoPower);
-
+				float innerRadius = radius;
+				float outerRadius = innerRadius * 3.0;
 				
+				float kHigherOcclusion = 0.6;
 				occlusion = clamp(occlusion / kHigherOcclusion, 0.0, 1.0);
+				float debugOcclusion = occlusion;
+				occlusion = pow(1.0 - occlusion, aoPower);
 				
 				if (debugMode) {
-					vec3 debugColor = debugOcclusionColor(occlusion);
+					vec3 debugColor = debugOcclusionColor(debugOcclusion);
 					gl_FragColor = vec4( vec3( debugColor ), 1.0 );
+				} else if (mouseDebugMode) {
+				 	float  distanceToMouse = calculateDistance(fragmentWorldPos, mouseWorldPos);
+					vec3 debugColor;
+					if (distanceToMouse < innerRadius) {
+						// Inside inner radius: Green.
+						debugColor = vec3(0.0, 1.0, 0.0);
+					} else if (distanceToMouse < outerRadius) {
+						// Between inner and outer radius: Gradient from green to yellow.
+						float t = (distanceToMouse - innerRadius) / (outerRadius - innerRadius);
+						debugColor = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), t);
+					} else {
+						// Outside outer radius: Red.
+						debugColor = vec3(occlusion);
+					}
+					gl_FragColor = vec4(debugColor, 1.0);
 				} else {
 					gl_FragColor = vec4( vec3( occlusion ), 1.0 );
 				}

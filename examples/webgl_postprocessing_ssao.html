@@ -132,6 +132,9 @@
             gui.add(ssaoPass, 'debugMode').name('Debug Mode').listen().onChange((value) => {
                 ssaoPass.debugMode = value ? true : false;
             });
+            gui.add(ssaoPass, 'mouseDebugMode').name('Mouse Debug Mode').listen().onChange((value) => {
+                ssaoPass.mouseDebugMode = value ? true : false;
+            });
 
 
             const lightFolder = gui.addFolder('Lights');
