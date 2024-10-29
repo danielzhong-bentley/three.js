@@ -105,7 +105,7 @@ class SSAOPass extends Pass {
 
 		// depth texture
 
-		const depthTexture = new DepthTexture();
+		const depthTexture = new DepthTexture(this.width, this.height);
 		depthTexture.format = DepthStencilFormat;
 		depthTexture.type = UnsignedInt248Type;
 
@@ -336,7 +336,12 @@ class SSAOPass extends Pass {
 		  if (this.blurMaterial.uniforms['tNoise'] !== undefined) {
 			this.blurMaterial.uniforms['tNoise'].value = this.noiseTexture;
 		}
-		
+		console.log('Blue noise texture loaded:', texture);
+		},
+		undefined, // Progress callback (optional)
+		(error) => {
+			// Log an error if the texture fails to load
+			console.error('Failed to load blue noise texture:', error);
 		});
 	  }
 
